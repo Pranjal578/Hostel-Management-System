@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Register - Hostel Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card" style="max-width: 900px; margin: 2rem auto;">
+        <div class="card-header">
+            <h2>📝 Resident Registration</h2>
+            <p style="color: var(--text-secondary); margin: 0;">Fill in your details to create your profile</p>
+        </div>
+        
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('register') }}" data-draft="registration">
+                
+                <!-- Personal Information -->
+                <h4 style="color: var(--primary-color); margin-top: 1rem; margin-bottom: 1.5rem;">Personal Information</h4>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="full_name">Full Name *</label>
+                        <input type="text" class="form-control" id="full_name" name="full_name" required placeholder="Enter your full name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="gender">Gender *</label>
+                        <select class="form-control" id="gender" name="gender" required>
+                            <option value="">Select Gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="date_of_birth">Date of Birth *</label>
+                    <input type="date" class="form-control" id="date_of_birth" name="date_of_birth" required>
+                </div>
+                
+                <!-- Contact Information -->
+                <h4 style="color: var(--primary-color); margin-top: 2rem; margin-bottom: 1.5rem;">Contact Information</h4>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="email">Email Address *</label>
+                        <input type="email" class="form-control" id="email" name="email" required placeholder="your.email@example.com">
+                        <small style="color: var(--text-secondary);">This will be your login username</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">Phone Number *</label>
+                        <input type="tel" class="form-control" id="phone" name="phone" required pattern="[0-9]{10}" placeholder="10-digit mobile number">
+                        <small style="color: var(--text-secondary);">10 digits without country code</small>
+                    </div>
+                </div>
+                
+                <!-- Address Information -->
+                <h4 style="color: var(--primary-color); margin-top: 2rem; margin-bottom: 1.5rem;">Address Information</h4>
+                
+                <div class="form-group">
+                    <label for="permanent_address">Permanent Address *</label>
+                    <textarea class="form-control" id="permanent_address" name="permanent_address" required placeholder="House No., Street, Area"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="city">City *</label>
+                        <input type="text" class="form-control" id="city" name="city" required placeholder="City">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="state">State *</label>
+                        <input type="text" class="form-control" id="state" name="state" required placeholder="State">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="pincode">Pincode *</label>
+                        <input type="text" class="form-control" id="pincode" name="pincode" required pattern="[0-9]{6}" placeholder="6-digit pincode">
+                    </div>
+                </div>
+                
+                <!-- Hostel Information -->
+                <h4 style="color: var(--primary-color); margin-top: 2rem; margin-bottom: 1.5rem;">Hostel Information</h4>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="room_number">Room Number *</label>
+                        <input type="text" class="form-control" id="room_number" name="room_number" required placeholder="e.g., 101, A-12">
+                        <small style="color: var(--text-secondary);">Must be unique</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="date_of_joining">Date of Joining *</label>
+                        <input type="date" class="form-control" id="date_of_joining" name="date_of_joining" required>
+                    </div>
+                </div>
+                
+                <!-- Emergency Contact -->
+                <h4 style="color: var(--primary-color); margin-top: 2rem; margin-bottom: 1.5rem;">Emergency Contact</h4>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="emergency_contact_name">Contact Name *</label>
+                        <input type="text" class="form-control" id="emergency_contact_name" name="emergency_contact_name" required placeholder="Parent/Guardian name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="emergency_contact_phone">Contact Phone *</label>
+                        <input type="tel" class="form-control" id="emergency_contact_phone" name="emergency_contact_phone" required pattern="[0-9]{10}" placeholder="10-digit number">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="emergency_contact_relation">Relation *</label>
+                        <select class="form-control" id="emergency_contact_relation" name="emergency_contact_relation" required>
+                            <option value="">Select Relation</option>
+                            <option value="Father">Father</option>
+                            <option value="Mother">Mother</option>
+                            <option value="Guardian">Guardian</option>
+                            <option value="Sibling">Sibling</option>
+                            <option value="Spouse">Spouse</option>
+                            <option value="Friend">Friend</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Password -->
+                <h4 style="color: var(--primary-color); margin-top: 2rem; margin-bottom: 1.5rem;">Set Password</h4>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password">Password *</label>
+                        <input type="password" class="form-control" id="password" name="password" required minlength="6" placeholder="Minimum 6 characters">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm Password *</label>
+                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="6" placeholder="Re-enter password">
+                    </div>
+                </div>
+                
+                <!-- Submit Button -->
+                <div class="form-group" style="margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary btn-lg btn-block">
+                        🎯 Complete Registration
+                    </button>
+                </div>
+                
+                <div class="text-center" style="margin-top: 1rem;">
+                    <p style="color: var(--text-secondary);">
+                        Already have an account? 
+                        <a href="{{ url_for('resident_login') }}" style="font-weight: 600;">Login here</a>
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Set max date for joining to today
+    document.getElementById('date_of_joining').max = new Date().toISOString().split('T')[0];
+</script>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ error_code }} - Hostel Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card text-center" style="max-width: 600px; margin: 4rem auto; padding: 3rem;">
+        
+        <!-- Error Icon -->
+        <div style="font-size: 5rem; margin-bottom: 1rem;">
+            {% if error_code == 404 %}
+                🔍
+            {% elif error_code == 403 %}
+                🚫
+            {% elif error_code == 500 %}
+                ⚠️
+            {% else %}
+                ❌
+            {% endif %}
+        </div>
+        
+        <!-- Error Code -->
+        <h1 style="font-size: 4rem; color: var(--danger-color); margin-bottom: 0.5rem;">
+            {{ error_code }}
+        </h1>
+        
+        <!-- Error Message -->
+        <h2 style="margin-bottom: 1rem;">
+            {% if error_code == 404 %}
+                Page Not Found
+            {% elif error_code == 403 %}
+                Access Forbidden
+            {% elif error_code == 500 %}
+                Internal Server Error
+            {% else %}
+                An Error Occurred
+            {% endif %}
+        </h2>
+        
+        <p style="color: var(--text-secondary); font-size: 1.125rem; margin-bottom: 2rem;">
+            {{ error_message }}
+        </p>
+        
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">
+                🏠 Go to Home
+            </a>
+            
+            <button onclick="history.back()" class="btn btn-secondary btn-lg">
+                ← Go Back
+            </button>
+        </div>
+        
+        <!-- Additional Help -->
+        <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border-color);">
+            <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                If you believe this is a mistake, please contact the administrator.
+            </p>
+        </div>
+        
+    </div>
+</div>
+{% endblock %}

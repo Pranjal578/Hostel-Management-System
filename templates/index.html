@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Hostel Management System{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero">
+    <div class="container">
+        <h1>🏠 Hostel Resident Management System</h1>
+        <p>Digital profile pages for every resident with QR code access</p>
+        
+        <div class="hero-buttons">
+            {% if not session.get('resident_id') and not session.get('is_admin') %}
+                <a href="{{ url_for('register') }}" class="btn btn-lg btn-primary">Register Now</a>
+                <a href="{{ url_for('resident_login') }}" class="btn btn-lg btn-outline">Login</a>
+            {% elif session.get('resident_id') %}
+                <a href="{{ url_for('resident_dashboard') }}" class="btn btn-lg btn-primary">Go to Dashboard</a>
+            {% elif session.get('is_admin') %}
+                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-lg btn-primary">Admin Dashboard</a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="container" style="margin-top: 3rem;">
+    <div class="text-center mb-4">
+        <h2>Why Choose Our System?</h2>
+        <p>Modern, efficient, and easy to use hostel management</p>
+    </div>
+    
+    <div class="grid grid-3">
+        <!-- Feature 1 -->
+        <div class="card">
+            <div class="text-center">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📱</div>
+                <h3>QR Code Profiles</h3>
+                <p>Each resident gets a unique QR code that links to their digital profile. Scan and view instantly!</p>
+            </div>
+        </div>
+        
+        <!-- Feature 2 -->
+        <div class="card">
+            <div class="text-center">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+                <h3>Secure Access</h3>
+                <p>Role-based authentication ensures residents can only edit their own data while admins have full control.</p>
+            </div>
+        </div>
+        
+        <!-- Feature 3 -->
+        <div class="card">
+            <div class="text-center">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">💾</div>
+                <h3>Real-Time Updates</h3>
+                <p>All changes are reflected instantly in the database. No need to regenerate QR codes!</p>
+            </div>
+        </div>
+        
+        <!-- Feature 4 -->
+        <div class="card">
+            <div class="text-center">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
+                <h3>Room Management</h3>
+                <p>View all residents organized by room numbers. Easy navigation and search functionality.</p>
+            </div>
+        </div>
+        
+        <!-- Feature 5 -->
+        <div class="card">
+            <div class="text-center">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">👤</div>
+                <h3>Profile Control</h3>
+                <p>Residents can update their contact details and emergency information anytime after login.</p>
+            </div>
+        </div>
+        
+        <!-- Feature 6 -->
+        <div class="card">
+            <div class="text-center">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">📱</div>
+                <h3>Mobile Friendly</h3>
+                <p>Fully responsive design works perfectly on all devices - phones, tablets, and desktops.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="container" style="margin-top: 3rem;">
+    <div class="text-center mb-4">
+        <h2>How It Works</h2>
+    </div>
+    
+    <div class="grid grid-2">
+        <!-- For Residents -->
+        <div class="card">
+            <h3 style="color: var(--primary-color);">👤 For Residents</h3>
+            <ol style="line-height: 2; color: var(--text-secondary);">
+                <li><strong>Register:</strong> Fill the registration form with your details</li>
+                <li><strong>Get QR Code:</strong> Receive your unique QR code automatically</li>
+                <li><strong>Login:</strong> Access your profile anytime with your credentials</li>
+                <li><strong>Update:</strong> Edit your contact and emergency information</li>
+                <li><strong>Share:</strong> Your QR code provides instant access to your profile</li>
+            </ol>
+        </div>
+        
+        <!-- For Admins -->
+        <div class="card">
+            <h3 style="color: var(--danger-color);">👮‍♂️ For Admins</h3>
+            <ol style="line-height: 2; color: var(--text-secondary);">
+                <li><strong>Login:</strong> Access admin panel with credentials</li>
+                <li><strong>View All:</strong> See all residents organized by room number</li>
+                <li><strong>Edit Profiles:</strong> Update any resident's information</li>
+                <li><strong>Delete Records:</strong> Remove residents when they leave</li>
+                <li><strong>Manage:</strong> Full control over the entire database</li>
+            </ol>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Section -->
+<section class="container" style="margin-top: 3rem; margin-bottom: 3rem;">
+    <div class="card" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white;">
+        <div class="grid grid-3 text-center">
+            <div>
+                <h2 style="font-size: 3rem; margin-bottom: 0.5rem; color: white;">🎯</h2>
+                <h3 style="color: white;">Simple</h3>
+                <p style="color: rgba(255, 255, 255, 0.9);">Easy to use interface for everyone</p>
+            </div>
+            <div>
+                <h2 style="font-size: 3rem; margin-bottom: 0.5rem; color: white;">⚡</h2>
+                <h3 style="color: white;">Fast</h3>
+                <p style="color: rgba(255, 255, 255, 0.9);">Quick access with QR codes</p>
+            </div>
+            <div>
+                <h2 style="font-size: 3rem; margin-bottom: 0.5rem; color: white;">🔐</h2>
+                <h3 style="color: white;">Secure</h3>
+                <p style="color: rgba(255, 255, 255, 0.9);">Protected data with authentication</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+{% if not session.get('resident_id') and not session.get('is_admin') %}
+<section class="container text-center" style="margin-bottom: 3rem;">
+    <div class="card">
+        <h2>Ready to Get Started?</h2>
+        <p style="font-size: 1.125rem; margin-bottom: 2rem;">Join hundreds of residents already using our system</p>
+        <a href="{{ url_for('register') }}" class="btn btn-lg btn-primary">Register Now - It's Free!</a>
+    </div>
+</section>
+{% endif %}
+{% endblock %}

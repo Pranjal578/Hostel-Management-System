@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Resident Login - Hostel Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card" style="max-width: 500px; margin: 4rem auto;">
+        <div class="card-header text-center">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">👤</div>
+            <h2>Resident Login</h2>
+            <p style="color: var(--text-secondary); margin: 0;">Access your profile</p>
+        </div>
+        
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('resident_login') }}">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" class="form-control" id="email" name="email" required placeholder="your.email@example.com" autofocus>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required placeholder="Enter your password">
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary btn-lg btn-block">
+                        🔑 Login
+                    </button>
+                </div>
+            </form>
+            
+            <div class="text-center" style="margin-top: 1.5rem;">
+                <p style="color: var(--text-secondary);">
+                    Don't have an account? 
+                    <a href="{{ url_for('register') }}" style="font-weight: 600;">Register here</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
