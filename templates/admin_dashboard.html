@@ -71,12 +71,12 @@
                             <td>{{ resident.date_of_joining.strftime('%b %d, %Y') }}</td>
                             <td>
                                 <a href="{{ url_for('admin_view_resident', resident_id=resident.id) }}" 
-                                   class="btn btn-primary btn-sm" title="View Profile">👁️</a>
+                                   class="btn btn-primary btn-sm" title="View Profile">View</a>
                                 <a href="{{ url_for('admin_edit_resident', resident_id=resident.id) }}" 
-                                   class="btn btn-warning btn-sm" title="Edit">✏️</a>
+                                   class="btn btn-warning btn-sm" title="Edit">Edit</a>
                                 <form method="POST" action="{{ url_for('admin_delete_resident', resident_id=resident.id) }}" 
                                       style="display: inline;">
-                                    <button type="submit" class="btn btn-danger btn-sm btn-delete" title="Delete">🗑️</button>
+                                    <button type="submit" class="btn btn-danger btn-sm btn-delete" title="Delete">Delete</button>
                                 </form>
                             </td>
                         </tr>
