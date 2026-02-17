@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Send OTP - Hostel Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card" style="max-width: 500px; margin: 4rem auto;">
+        <div class="card-header text-center">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">📱</div>
+            <h2>Verify Your Identity</h2>
+            <p style="color: var(--text-secondary); margin: 0;">Choose how to receive your OTP</p>
+        </div>
+
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('send_otp') }}">
+                <div class="form-group">
+                    <label for="method">Receive OTP via:</label>
+                    <select class="form-control" id="method" name="method" required>
+                        <option value="">-- Select Method --</option>
+                        <option value="email">📧 Email ({{ masked_email }})</option>
+                        <option value="sms">💬 SMS ({{ masked_phone }})</option>
+                    </select>
+                </div>
+
+                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                    <p style="margin: 0; color: #666; font-size: 14px;">
+                        <strong>Note:</strong> You will receive a 6-digit code that expires in 10 minutes.
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary btn-lg btn-block">
+                        Send OTP Code
+                    </button>
+                </div>
+            </form>
+
+            <div class="text-center" style="margin-top: 1.5rem;">
+                <p style="color: var(--text-secondary); margin-bottom: 10px;">
+                    <a href="{{ url_for('resident_login') }}" style="color: var(--link-color);">Back to Login</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

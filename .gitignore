@@ -53,11 +53,20 @@ static/images/uploads/
 
 # Logs
 *.log
+logs/
 
 # Environment variables
 .env
 .env.local
+.env.*.local
 
 # Temporary files
 *.tmp
 *.temp
+
+# Production/Deployment
+.env.production
+gunicorn.log
+*.sock
+tmp/
+

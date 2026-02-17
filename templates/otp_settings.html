@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}OTP Settings - Hostel Management System{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card" style="max-width: 600px; margin: 3rem auto;">
+        <div class="card-header text-center">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🔐</div>
+            <h2>OTP Security Settings</h2>
+            <p style="color: var(--text-secondary); margin: 0;">Manage two-factor authentication for your account</p>
+        </div>
+
+        <div class="card-body">
+            {% if resident.is_otp_enabled() %}
+                <!-- OTP Enabled -->
+                <div style="background-color: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h5 style="color: #155724; margin: 0 0 10px 0;">✅ OTP is Enabled</h5>
+                    <p style="color: #155724; margin: 0;">
+                        You will need to verify with a code sent via <strong>{{ 'Email' if resident.otp_method == 'email' else 'SMS' }}</strong> every time you log in.
+                    </p>
+                </div>
+
+                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h5 style="margin: 0 0 10px 0;">Current Method</h5>
+                    <p style="margin: 5px 0;">
+                        <strong>
+                            {% if resident.otp_method == 'email' %}
+                                📧 Email: {{ resident.email }}
+                            {% elif resident.otp_method == 'sms' %}
+                                💬 SMS: {{ resident.phone[-4:] | string | rjust(resident.phone | length, '*') }}
+                            {% else %}
+                                Not set
+                            {% endif %}
+                        </strong>
+                    </p>
+                </div>
+
+                <form method="POST" action="{{ url_for('setup_otp') }}">
+                    <h5 style="margin-bottom: 15px;">Change OTP Method</h5>
+                    <div class="form-group">
+                        <select class="form-control" name="method" required>
+                            <option value="email" {% if resident.otp_method == 'email' %} selected {% endif %}>📧 Email</option>
+                            <option value="sms" {% if resident.otp_method == 'sms' %} selected {% endif %}>💬 SMS</option>
+                        </select>
+                    </div>
+
+                    <input type="hidden" name="action" value="enable">
+
+                    <button type="submit" class="btn btn-info" style="margin-bottom: 10px;">
+                        Update OTP Method
+                    </button>
+                </form>
+
+                <div style="border-top: 1px solid #dee2e6; padding-top: 20px; margin-top: 20px;">
+                    <h5 style="margin-bottom: 15px; color: #dc3545;">Disable OTP</h5>
+                    <p style="color: #666; margin-bottom: 15px;">
+                        If you disable OTP, your account will only be protected by your password. This is less secure.
+                    </p>
+                    <form method="POST" action="{{ url_for('setup_otp') }}">
+                        <input type="hidden" name="action" value="disable">
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure? Your login will be less secure.')">
+                            ❌ Disable OTP
+                        </button>
+                    </form>
+                </div>
+
+            {% else %}
+                <!-- OTP Disabled -->
+                <div style="background-color: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h5 style="color: #856404; margin: 0 0 10px 0;">❌ OTP is Not Enabled</h5>
+                    <p style="color: #856404; margin: 0;">
+                        Add an extra layer of security by enabling One-Time Password authentication.
+                    </p>
+                </div>
+
+                <div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    <h5 style="margin: 0 0 15px 0;">Benefits of OTP</h5>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        <li>Extra security beyond your password</li>
+                        <li>Protects against unauthorized access</li>
+                        <li>Codes expire after 10 minutes</li>
+                        <li>Available via Email or SMS</li>
+                    </ul>
+                </div>
+
+                <form method="POST" action="{{ url_for('setup_otp') }}">
+                    <div class="form-group">
+                        <label for="method">Receive OTP codes via:</label>
+                        <select class="form-control" id="method" name="method" required>
+                            <option value="">-- Select Method --</option>
+                            <option value="email">📧 Email ({{ resident.email }})</option>
+                            <option value="sms">💬 SMS ({{ resident.phone[-4:] | string | rjust(resident.phone | length, '*') }})</option>
+                        </select>
+                    </div>
+
+                    <input type="hidden" name="action" value="enable">
+
+                    <button type="submit" class="btn btn-success btn-lg btn-block">
+                        ✅ Enable OTP Now
+                    </button>
+                </form>
+            {% endif %}
+
+            <div style="border-top: 1px solid #dee2e6; padding-top: 20px; margin-top: 20px;">
+                <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 10px;">
+                    <strong>Note:</strong> When you enable OTP, you'll need to enter the code on your next login.
+                </p>
+                <a href="{{ url_for('edit_profile') }}" class="btn btn-outline-secondary">
+                    ← Back to Profile
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
