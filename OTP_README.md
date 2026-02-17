@@ -5,6 +5,7 @@
 The Hostel Management System now includes optional OTP authentication for enhanced security. Users can enable OTP to receive 6-digit verification codes via email or SMS when logging in.
 
 **Key Features:**
+
 - ✅ **Optional:** Users choose whether to enable OTP
 - ✅ **Multiple Delivery Methods:** Email or SMS
 - ✅ **Time-Limited:** Codes expire after 10 minutes
@@ -62,7 +63,7 @@ SENDER_EMAIL=noreply@hostelmanagement.com
 
 1. **Enable 2-Factor Authentication** on your Google Account
 2. **Create App Password:**
-   - Go to https://myaccount.google.com/apppasswords
+   - Go to <https://myaccount.google.com/apppasswords>
    - Select "Mail" and "Windows Computer" (or your device)
    - Add the generated 16-character password as `MAIL_PASSWORD`
 3. Do NOT use your regular Google password
@@ -70,19 +71,22 @@ SENDER_EMAIL=noreply@hostelmanagement.com
 #### Other Email Providers
 
 **Outlook/Hotmail:**
-```
+
+```mail
 MAIL_SERVER=smtp.live.com
 MAIL_PORT=587
 ```
 
 **Yahoo Mail:**
-```
+
+```mail
 MAIL_SERVER=smtp.mail.yahoo.com
 MAIL_PORT=587
 ```
 
 **SendGrid:**
-```
+
+```mail
 MAIL_SERVER=smtp.sendgrid.net
 MAIL_PORT=587
 MAIL_USERNAME=apikey
@@ -99,7 +103,7 @@ TWILIO_AUTH_TOKEN=your-auth-token
 TWILIO_PHONE_NUMBER=+1234567890
 ```
 
-Get these from: https://www.twilio.com/console
+Get these from: <https://www.twilio.com/console>
 
 **Note:** SMS requires Twilio account and has associated costs.
 
@@ -116,11 +120,13 @@ Get these from: https://www.twilio.com/console
 #### Troubleshooting
 
 **OTP email not received:**
+
 - Check MAIL_SERVER, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD in .env
 - Check spam folder
 - Verify email configuration with `python manage.py check`
 
 **SMS not working:**
+
 - Verify TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN
 - Check phone number format (must include country code: +1234567890)
 - Ensure Twilio account has sufficient credits
@@ -132,6 +138,7 @@ Get these from: https://www.twilio.com/console
 OTP codes are **hashed before storage** using PBKDF2-SHA256 (same as password hashing). The plain OTP is never stored in the database.
 
 **Database Fields Added to Residents table:**
+
 ```python
 otp_enabled       Boolean   # Whether OTP is enabled
 otp_code          String    # Hashed OTP code
@@ -141,7 +148,7 @@ otp_method        String    # 'email' or 'sms'
 
 ### Login Flow with OTP
 
-```
+```flow
 User enters email + password
     ↓
 Password validated
@@ -157,6 +164,7 @@ Is OTP enabled?
 ### File Structure
 
 **New/Modified Files:**
+
 - `models/db.py` - Added OTP fields to Resident model
 - `app.py` - Added OTP routes and modified login flow
 - `config.py` - Added email/SMS configuration options
@@ -164,11 +172,13 @@ Is OTP enabled?
 - `.env.example` - Added email/SMS configuration template
 
 **New Utilities:**
+
 - `utils/otp_generator.py` - Generate, hash, validate OTP codes
 - `utils/email_sender.py` - Send OTP via email
 - `utils/sms_sender.py` - Send OTP via SMS
 
 **New Templates:**
+
 - `send_otp.html` - Choose delivery method
 - `verify_otp.html` - Enter OTP code with timer
 - `otp_settings.html` - Manage OTP settings
@@ -176,6 +186,7 @@ Is OTP enabled?
 ### API Endpoints
 
 **New Routes:**
+
 - `GET /resident/send-otp` - Choose OTP delivery method
 - `POST /resident/send-otp` - Send OTP code
 - `GET /resident/verify-otp` - Enter OTP code
@@ -187,6 +198,7 @@ Is OTP enabled?
 ### Configuration Options
 
 **In `.env` file:**
+
 ```bash
 # Email Configuration
 MAIL_SERVER=smtp.gmail.com        # SMTP server
@@ -217,14 +229,16 @@ OTP_EXPIRY_MINUTES=10             # Minutes until OTP expires
 
 ## Best Practices
 
-✅ **DO:**
+**DO:**
+
 - Use strong email/SMS provider credentials
 - Monitor OTP failures in logs
 - Keep email/SMS provider accounts secure
 - Test email setup in development first
 - Document OTP recovery procedures
 
-❌ **DON'T:**
+ **DON'T:**
+
 - Share OTP codes in unsecured channels
 - Use weak email passwords
 - Enable OTP without testing
@@ -234,12 +248,14 @@ OTP_EXPIRY_MINUTES=10             # Minutes until OTP expires
 ## Limitations & Future Enhancements
 
 **Current Limitations:**
+
 - No rate limiting on OTP attempts (can be added in future)
 - No backup recovery codes (can be added in future)
 - No SMS failover if email fails (would require TOTP)
 - Admin users don't have OTP option (can be added in future)
 
 **Potential Enhancements:**
+
 - TOTP (Time-based OTP) with authenticator apps
 - Rate limiting to prevent brute force
 - Backup recovery codes
@@ -248,17 +264,19 @@ OTP_EXPIRY_MINUTES=10             # Minutes until OTP expires
 - OTP audit logs
 - Multi-device session management
 
-## Troubleshooting
+## Troubleshooting Guide
 
 ### Email Configuration Issues
 
-**Error: "Email configuration not set up"**
-```
+### Error: "Email configuration not set up"
+
+```solution
 Solution: Set MAIL_SERVER, MAIL_USERNAME, MAIL_PASSWORD in .env
 ```
 
-**Error: "Failed to send OTP"**
-```
+### Error: "Failed to send OTP"
+
+```list
 Check:
 1. Email credentials are correct
 2. Email account allows app passwords
@@ -266,8 +284,9 @@ Check:
 4. Check app logs for detailed error
 ```
 
-**Emails going to spam**
-```
+### Emails going to spam
+
+```list
 Solution:
 1. Add sender email to contacts
 2. Use established email provider (Gmail, Outlook)
@@ -276,14 +295,16 @@ Solution:
 
 ### OTP Verification Issues
 
-**Error: "OTP has expired"**
-```
+#### Error: "OTP has expired"
+
+```error
 Cause: 10 minutes passed since OTP was sent
 Solution: Click "Resend OTP" to get a new code
 ```
 
-**Error: "Invalid OTP code"**
-```
+### Error: "Invalid OTP code"**
+
+```list
 Check:
 1. Entered code matches received code
 2. No extra spaces in code
@@ -293,8 +314,9 @@ Check:
 
 ### SMS Issues
 
-**SMS not being sent**
-```
+### SMS not being sent
+
+```list
 Check:
 1. Twilio credentials configured correctly
 2. Phone number format: +1234567890
