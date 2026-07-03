@@ -1,0 +1,429 @@
+from functools import wraps
+from datetime import datetime
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app
+from app.models.db import db, User, Resident, Hostel, AuditLog
+from app.utils.otp_generator import generate_otp, hash_otp, validate_otp, get_otp_expiry_time
+from app.utils.email_sender import send_otp_email
+from app.utils.sms_sender import send_otp_sms
+from app.utils.photo_handler import save_photo, validate_photo
+from app.utils.qr_generator import generate_qr_code
+from app import limiter, oauth
+
+auth_bp = Blueprint('auth', __name__)
+
+def role_required(*roles):
+    """Decorator to restrict access to specific roles"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if 'user_id' not in session:
+                flash('Please login to access this page.', 'warning')
+                return redirect(url_for('auth.login'))
+            
+            user = User.query.get(session['user_id'])
+            if not user or user.role not in roles:
+                flash('You do not have permission to access this page.', 'danger')
+                return redirect(url_for('auth.dashboard_redirect'))
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+@auth_bp.route('/login', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
+def login():
+    """Unified login for SuperAdmin, HostelOwner, and Resident"""
+    # If already logged in, redirect
+    if 'user_id' in session:
+        return redirect(url_for('auth.dashboard_redirect'))
+
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+
+        # Check default SuperAdmin credentials from config/env
+        admin_username = current_app.config.get('ADMIN_USERNAME', 'demo')
+        admin_password = current_app.config.get('ADMIN_PASSWORD', 'demo')
+
+        if email == admin_username and password == admin_password:
+            # Check if SuperAdmin User exists in DB, otherwise create it
+            admin_user = User.query.filter_by(email=email).first()
+            if not admin_user:
+                admin_user = User(email=email, role='SuperAdmin')
+                admin_user.set_password(password)
+                db.session.add(admin_user)
+                db.session.commit()
+            
+            session['user_id'] = admin_user.id
+            session['user_email'] = admin_user.email
+            session['user_role'] = admin_user.role
+            session['password_version'] = admin_user.password_version
+            
+            # Log action
+            log_security_action(admin_user.id, "Logged in as SuperAdmin")
+            flash('Welcome back, Super Admin!', 'success')
+            return redirect(url_for('admin.dashboard'))
+
+        # Standard User lookup
+        user = User.query.filter_by(email=email).first()
+        if user and user.check_password(password):
+            # Password verified
+            if user.is_otp_enabled():
+                # OTP is enabled - store pending user details in session
+                session['otp_pending_user_id'] = user.id
+                
+                # Generate and save OTP
+                otp_code = generate_otp(6)
+                user.otp_code = hash_otp(otp_code)
+                user.otp_expires_at = get_otp_expiry_time(10) # 10 mins expiry
+                db.session.commit()
+                
+                # Send OTP via selected method
+                user_name = user.email
+                if user.role == 'Resident' and user.resident_profile:
+                    user_name = user.resident_profile.full_name
+
+                success = False
+                msg = ""
+                if user.otp_method == 'sms' and user.role == 'Resident' and user.resident_profile:
+                    success, msg = send_otp_sms(user.resident_profile.phone_decrypted, otp_code, user_name)
+                else:
+                    # Default email delivery
+                    success, msg = send_otp_email(user.email, otp_code, user_name)
+
+                if success:
+                    flash(f'Verification code sent via {user.otp_method or "email"}.', 'info')
+                    return redirect(url_for('auth.send_otp_view'))
+                else:
+                    flash(f'Error sending verification code: {msg}. Falling back to default session.', 'warning')
+            
+            # Standard Session setup (no OTP or OTP delivery failed)
+            session['user_id'] = user.id
+            session['user_email'] = user.email
+            session['user_role'] = user.role
+            session['password_version'] = user.password_version
+            
+            log_security_action(user.id, f"Logged in successfully as {user.role}")
+            flash('Logged in successfully!', 'success')
+            return redirect(url_for('auth.dashboard_redirect'))
+        else:
+            flash('Invalid email or password.', 'danger')
+
+    return render_template('admin_login.html')
+
+
+@auth_bp.route('/verify-otp', methods=['GET', 'POST'])
+@limiter.limit("5 per minute")
+def send_otp_view():
+    """Verify 2FA OTP code page"""
+    if 'otp_pending_user_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    user = User.query.get(session['otp_pending_user_id'])
+    if not user:
+        session.pop('otp_pending_user_id', None)
+        return redirect(url_for('auth.login'))
+
+    if request.method == 'POST':
+        otp_code = request.form.get('otp_code', '').strip()
+        
+        is_valid, error_msg = validate_otp(otp_code, user.otp_code, user.otp_expires_at)
+        if is_valid:
+            # Login successful, clear OTP state
+            session['user_id'] = user.id
+            session['user_email'] = user.email
+            session['user_role'] = user.role
+            session['password_version'] = user.password_version
+            session.pop('otp_pending_user_id', None)
+            
+            # Clear OTP from db
+            user.otp_code = None
+            user.otp_expires_at = None
+            db.session.commit()
+            
+            log_security_action(user.id, "Completed OTP MFA Verification")
+            flash('Verification complete!', 'success')
+            return redirect(url_for('auth.dashboard_redirect'))
+        else:
+            flash(error_msg, 'danger')
+
+    return render_template('verify_otp.html', email=user.email, method=user.otp_method)
+
+
+@auth_bp.route('/resend-otp', methods=['POST'])
+@limiter.limit("3 per minute")
+def resend_otp():
+    """Resend a new OTP code to user"""
+    if 'otp_pending_user_id' not in session:
+        return redirect(url_for('auth.login'))
+
+    user = User.query.get(session['otp_pending_user_id'])
+    if not user:
+        return redirect(url_for('auth.login'))
+
+    # Generate new OTP
+    otp_code = generate_otp(6)
+    user.otp_code = hash_otp(otp_code)
+    user.otp_expires_at = get_otp_expiry_time(10)
+    db.session.commit()
+
+    user_name = user.email
+    if user.role == 'Resident' and user.resident_profile:
+        user_name = user.resident_profile.full_name
+
+    success = False
+    if user.otp_method == 'sms' and user.role == 'Resident' and user.resident_profile:
+        success, msg = send_otp_sms(user.resident_profile.phone_decrypted, otp_code, user_name)
+    else:
+        success, msg = send_otp_email(user.email, otp_code, user_name)
+
+    if success:
+        flash('A new verification code has been sent.', 'success')
+    else:
+        flash(f'Failed to send code: {msg}', 'danger')
+
+    return redirect(url_for('auth.send_otp_view'))
+
+
+@auth_bp.route('/register', methods=['GET', 'POST'])
+@limiter.limit("10 per hour")
+def register():
+    """Resident registration page"""
+    if 'user_id' in session:
+        return redirect(url_for('auth.dashboard_redirect'))
+
+    hostels = Hostel.query.all()
+
+    if request.method == 'POST':
+        try:
+            email = request.form.get('email', '').strip()
+            phone = request.form.get('phone', '').strip()
+            room_number = request.form.get('room_number', '').strip()
+            hostel_id = request.form.get('hostel_id')
+            password = request.form.get('password')
+            confirm_password = request.form.get('confirm_password')
+
+            # Basic Validations
+            if not hostel_id:
+                flash('Please select a hostel.', 'warning')
+                return render_template('register.html', hostels=hostels)
+
+            if password != confirm_password:
+                flash('Passwords do not match.', 'danger')
+                return render_template('register.html', hostels=hostels)
+
+            # Check if email is already taken
+            existing_user = User.query.filter_by(email=email).first()
+            if existing_user:
+                flash('Email is already registered.', 'danger')
+                return render_template('register.html', hostels=hostels, clear_email=True)
+
+            # Check if room is occupied in this specific hostel
+            existing_room = Resident.query.filter_by(hostel_id=hostel_id, room_number=room_number).first()
+            if existing_room:
+                flash(f'Room {room_number} is already occupied in this hostel.', 'danger')
+                return render_template('register.html', hostels=hostels, clear_room=True)
+
+            # Check phone uniqueness
+            all_residents = Resident.query.all()
+            for r in all_residents:
+                if r.phone_decrypted == phone:
+                    flash('Phone number is already registered.', 'danger')
+                    return render_template('register.html', hostels=hostels, clear_phone=True)
+
+            # Parse DOB and Joining Date
+            dob = datetime.strptime(request.form['date_of_birth'], '%Y-%m-%d').date()
+            doj = datetime.strptime(request.form['date_of_joining'], '%Y-%m-%d').date()
+
+            # Format Aadhar
+            aadhar_raw = request.form.get('aadhar_id', '').replace('-', '')
+            aadhar_formatted = None
+            if aadhar_raw:
+                if aadhar_raw.isdigit() and len(aadhar_raw) == 12:
+                    aadhar_formatted = f"{aadhar_raw[:4]}-{aadhar_raw[4:8]}-{aadhar_raw[8:12]}"
+                else:
+                    flash('Aadhar ID must be exactly 12 digits.', 'warning')
+                    return render_template('register.html', hostels=hostels, clear_aadhar=True)
+
+            # Create User login entry
+            user = User(email=email, role='Resident')
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+
+            # Create Resident Profile linked to User
+            resident = Resident(
+                user_id=user.id,
+                hostel_id=hostel_id,
+                full_name=request.form['full_name'],
+                date_of_birth=dob,
+                gender=request.form['gender'],
+                city=request.form['city'],
+                state=request.form['state'],
+                pincode=request.form['pincode'],
+                room_number=room_number,
+                date_of_joining=doj,
+                emergency_contact_name=request.form['emergency_contact_name'],
+                emergency_contact_phone=request.form['emergency_contact_phone'],
+                emergency_contact_relation=request.form['emergency_contact_relation'],
+                guardian_name=request.form.get('guardian_name') or None,
+                guardian_phone=request.form.get('guardian_phone') or None,
+                guardian_email=request.form.get('guardian_email') or None,
+                guardian_relation=request.form.get('guardian_relation') or None,
+                emergency_contact_address=request.form.get('emergency_contact_address') or None
+            )
+            # Use encrypted setters
+            resident.phone_decrypted = phone
+            resident.permanent_address_decrypted = request.form['permanent_address']
+            if aadhar_formatted:
+                resident.aadhar_id_decrypted = aadhar_formatted
+
+            db.session.add(resident)
+            db.session.commit()
+
+            # Photo upload (optional)
+            photo_file = request.files.get('profile_photo')
+            if photo_file and photo_file.filename:
+                is_valid, error_msg = validate_photo(photo_file)
+                if not is_valid:
+                    flash(f'Photo upload skipped: {error_msg}', 'warning')
+                else:
+                    success, err = save_photo(photo_file, resident.id, db, resident)
+                    if not success:
+                        flash(f'Photo upload skipped: {err}', 'warning')
+
+            # Generate profile QR code
+            generate_qr_code(resident.id)
+            
+            log_security_action(user.id, f"Registered new resident account for Room {room_number}")
+            flash('Registration successful! You can now login.', 'success')
+            return redirect(url_for('auth.login'))
+
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Registration failed: {str(e)}', 'danger')
+
+    return render_template('register.html', hostels=hostels)
+
+
+@auth_bp.route('/logout')
+def logout():
+    """Clear session logs and logout"""
+    user_id = session.get('user_id')
+    if user_id:
+        log_security_action(user_id, "Logged out")
+    session.clear()
+    flash('Logged out successfully.', 'success')
+    return redirect(url_for('auth.login'))
+
+
+@auth_bp.route('/dashboard')
+def dashboard_redirect():
+    """Helper route to redirect authenticated users to their roles"""
+    if 'user_id' not in session:
+        return redirect(url_for('auth.login'))
+    
+    user = User.query.get(session['user_id'])
+    if user:
+        if user.role == 'SuperAdmin':
+            return redirect(url_for('admin.dashboard'))
+        elif user.role == 'HostelOwner':
+            return redirect(url_for('owner.dashboard'))
+        elif user.role == 'Resident':
+            return redirect(url_for('resident.dashboard'))
+            
+    session.clear()
+    return redirect(url_for('auth.login'))
+
+
+def log_security_action(user_id, action):
+    """Write action audit entry to database"""
+    try:
+        ip = request.remote_addr
+        log_entry = AuditLog(user_id=user_id, action=action, ip_address=ip)
+        db.session.add(log_entry)
+        db.session.commit()
+    except Exception as e:
+        print(f"Failed to write audit log: {str(e)}")
+
+
+@auth_bp.route('/secure-receipt/<filename>')
+def serve_secure_receipt(filename):
+    """Serve payment receipts securely after validating session authorization"""
+    import os
+    from flask import abort, send_from_directory, current_app
+    from app.models.db import Payment, Hostel, Resident, User
+    
+    if 'user_id' not in session:
+        abort(403)
+        
+    user = User.query.get(session['user_id'])
+    if not user:
+        abort(403)
+        
+    # Query database to check if payment exists
+    payment = Payment.query.filter(Payment.screenshot_path.like(f"%{filename}")).first_or_404()
+    
+    # Authorize access based on user role
+    authorized = False
+    if user.role == 'SuperAdmin':
+        authorized = True
+    elif user.role == 'HostelOwner':
+        hostel = Hostel.query.filter_by(owner_id=user.id).first()
+        if hostel and payment.hostel_id == hostel.id:
+            authorized = True
+    elif user.role == 'Resident':
+        resident = Resident.query.filter_by(user_id=user.id).first()
+        if resident and payment.resident_id == resident.id:
+            authorized = True
+            
+    if not authorized:
+        abort(403)
+        
+    directory = os.path.join(current_app.instance_path, 'uploads', 'payments')
+    return send_from_directory(directory, filename)
+
+
+@auth_bp.route('/login/google')
+@limiter.limit("10 per minute")
+def google_login():
+    """Redirect to Google OAuth 2.0 Auth Server"""
+    redirect_uri = url_for('auth.google_authorize', _external=True)
+    return oauth.google.authorize_redirect(redirect_uri)
+
+
+@auth_bp.route('/login/google/callback')
+@limiter.limit("10 per minute")
+def google_authorize():
+    """Google OAuth callback, logins user if registered"""
+    try:
+        token = oauth.google.authorize_access_token()
+        user_info = token.get('userinfo')
+    except Exception as e:
+        flash(f'Google authentication failed: {str(e)}', 'danger')
+        return redirect(url_for('auth.login'))
+
+    if not user_info:
+        flash('Failed to retrieve user info from Google.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    email = user_info.get('email')
+    if not email:
+        flash('Google account does not provide an email address.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    # Check if the user exists in our local database
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        flash(f'The email address {email} is not registered in the system. Please register or contact your hostel admin.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    # Google Sign-in serves as high-assurance MFA. We bypass local password/OTP checks for this flow.
+    session['user_id'] = user.id
+    session['user_email'] = user.email
+    session['user_role'] = user.role
+    session['password_version'] = user.password_version
+
+    log_security_action(user.id, "Logged in via Google OAuth 2.0")
+    flash('Logged in successfully via Google!', 'success')
+    return redirect(url_for('auth.dashboard_redirect'))

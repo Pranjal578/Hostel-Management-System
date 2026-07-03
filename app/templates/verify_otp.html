@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Multi-Factor Verification{% endblock %}
+
+{% block content %}
+<style>
+    .otp-input {
+        letter-spacing: 12px;
+        font-size: 28px;
+        text-align: center;
+        font-weight: 800;
+        font-family: 'Outfit', sans-serif;
+        color: var(--primary);
+        background: rgba(15, 23, 42, 0.7);
+        border: 2px solid var(--glass-border);
+        text-shadow: 0 0 10px var(--primary-glow);
+    }
+    
+    .otp-input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 20px var(--primary-glow);
+    }
+
+    .otp-timer {
+        text-align: center;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--primary);
+        margin: 1.5rem 0;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    .otp-timer.warning {
+        color: var(--danger);
+        animation: pulseWarning 1s infinite alternate;
+    }
+
+    @keyframes pulseWarning {
+        from { opacity: 0.6; }
+        to { opacity: 1; }
+    }
+</style>
+
+<div style="display: flex; justify-content: center; align-items: center; min-height: 70vh;">
+    <div class="bento-card clay-card col-12" style="max-width: 460px; width: 100%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="font-size: 3.5rem; margin-bottom: 0.5rem; filter: drop-shadow(0 0 10px var(--accent-glow));">🛡️</div>
+            <h2 style="font-size: 1.8rem; margin-bottom: 0.25rem;">OTP Verification</h2>
+            <p style="color: var(--text-secondary); font-size: 0.95rem; margin: 0;">We sent a 6-digit code to your registered security channel.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.send_otp_view') }}" id="otpForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" style="text-align: center; display: block;" for="otp_code">Enter 6-Digit Code</label>
+                <input type="text" class="form-control otp-input tactile-inset" id="otp_code" name="otp_code"
+                       placeholder="000000" maxlength="6" required autofocus
+                       inputmode="numeric" pattern="[0-9]{6}">
+            </div>
+
+            <div class="otp-timer" id="timer">
+                ⏱️ 10:00 remaining
+            </div>
+
+            <button type="submit" class="btn btn-primary clay-btn" style="width: 100%; padding: 0.9rem; font-size: 1rem; border-radius: var(--radius-md);">
+                Verify & Continue
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem;">
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">
+                Didn't receive the code?
+            </p>
+            <form method="POST" action="{{ url_for('auth.resend_otp') }}" style="display: inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-secondary btn-sm tactile-outset">
+                    🔄 Resend OTP Code
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-format input (only accept digits)
+    const otpInput = document.getElementById('otp_code');
+    otpInput.addEventListener('input', function (e) {
+        this.value = this.value.replace(/[^0-9]/g, '').substring(0, 6);
+    });
+
+    // Timer countdown (starts at 600s, i.e., 10 minutes)
+    let remainingSeconds = 600;
+    const timerEl = document.getElementById('timer');
+
+    function updateTimer() {
+        if (remainingSeconds <= 0) {
+            timerEl.innerHTML = '⏱️ 0:00 - OTP Expired';
+            timerEl.classList.add('warning');
+            otpInput.disabled = true;
+            return;
+        }
+
+        const minutes = Math.floor(remainingSeconds / 60);
+        const seconds = remainingSeconds % 60;
+        const display = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+        if (remainingSeconds < 120) {
+            timerEl.classList.add('warning');
+        }
+
+        timerEl.innerHTML = `⏱️ ${display} remaining`;
+        remainingSeconds--;
+
+        setTimeout(updateTimer, 1000);
+    }
+
+    updateTimer();
+</script>
+{% endblock %}

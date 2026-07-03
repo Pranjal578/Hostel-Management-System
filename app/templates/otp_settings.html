@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+
+{% block title %}User Settings{% endblock %}
+
+{% block content %}
+<div class="settings-container" style="margin-top: 1rem;">
+    <!-- Sidebar Navigation -->
+    <div class="settings-sidebar">
+        <div class="settings-nav">
+            <div class="settings-nav-item active" onclick="switchTab('profileTab', this)">
+                👤 Profile Settings
+            </div>
+            <div class="settings-nav-item" onclick="switchTab('securityTab', this)">
+                🔐 Security Access
+            </div>
+            <div class="settings-nav-item" onclick="switchTab('mfaTab', this)">
+                🛡️ MFA Security (OTP)
+            </div>
+        </div>
+    </div>
+    
+    <!-- Content Panels -->
+    <div class="settings-content">
+        
+        <!-- Tab 1: Profile Settings Panel -->
+        <div class="settings-tab-panel active" id="profileTab">
+            <div class="bento-card">
+                <h3 style="color: var(--primary); margin-bottom: 1.5rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">Update Profile Information</h3>
+                
+                {% if user.role == 'Resident' %}
+                <!-- Resident Profile Edit Form -->
+                <form method="POST" action="{{ url_for('settings.update_profile') }}" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="bento-grid" style="gap: 1.25rem;">
+                        <div class="form-group col-6">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-control tactile-inset" name="full_name" value="{{ resident.full_name }}" disabled>
+                            <small style="color: var(--text-muted);">Allocated Name. Contact Admin to change.</small>
+                        </div>
+                        <div class="form-group col-6">
+                            <label class="form-label">Hostel Allocation</label>
+                            <input type="text" class="form-control tactile-inset" value="{{ resident.hostel.hostel_name }}" disabled>
+                            <small style="color: var(--text-muted);">Locked setting.</small>
+                        </div>
+                        <div class="form-group col-6">
+                            <label class="form-label">Room Allocation</label>
+                            <input type="text" class="form-control tactile-inset" value="{{ resident.room_number }}" disabled>
+                            <small style="color: var(--text-muted);">Locked setting.</small>
+                        </div>
+                        <div class="form-group col-6">
+                            <label class="form-label" for="phone">Phone Number *</label>
+                            <input type="tel" class="form-control tactile-inset" id="phone" name="phone" required pattern="[0-9]{10}" value="{{ resident.phone_decrypted }}" placeholder="10-digit number">
+                        </div>
+                    </div>
+                    
+                    <h4 style="color: var(--primary); margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px dashed var(--glass-border); padding-bottom: 0.25rem;">Address Info</h4>
+                    <div class="form-group">
+                        <label class="form-label" for="permanent_address">Permanent Address *</label>
+                        <textarea class="form-control tactile-inset" id="permanent_address" name="permanent_address" required rows="2">{{ resident.permanent_address_decrypted }}</textarea>
+                    </div>
+                    <div class="bento-grid" style="gap: 1.25rem;">
+                        <div class="form-group col-4">
+                            <label class="form-label" for="city">City *</label>
+                            <input type="text" class="form-control tactile-inset" id="city" name="city" required value="{{ resident.city }}">
+                        </div>
+                        <div class="form-group col-4">
+                            <label class="form-label" for="state">State *</label>
+                            <input type="text" class="form-control tactile-inset" id="state" name="state" required value="{{ resident.state }}">
+                        </div>
+                        <div class="form-group col-4">
+                            <label class="form-label" for="pincode">Pincode *</label>
+                            <input type="text" class="form-control tactile-inset" id="pincode" name="pincode" required pattern="[0-9]{6}" value="{{ resident.pincode }}">
+                        </div>
+                    </div>
+
+                    <h4 style="color: var(--primary); margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px dashed var(--glass-border); padding-bottom: 0.25rem;">Guardian Info (Optional)</h4>
+                    <div class="bento-grid" style="gap: 1.25rem;">
+                        <div class="form-group col-6">
+                            <label class="form-label" for="guardian_name">Guardian Name</label>
+                            <input type="text" class="form-control tactile-inset" id="guardian_name" name="guardian_name" value="{{ resident.guardian_name or '' }}" placeholder="Guardian Full Name">
+                        </div>
+                        <div class="form-group col-6">
+                            <label class="form-label" for="guardian_phone">Guardian Phone</label>
+                            <input type="tel" class="form-control tactile-inset" id="guardian_phone" name="guardian_phone" pattern="[0-9]{10}" value="{{ resident.guardian_phone or '' }}" placeholder="10-digit number">
+                        </div>
+                        <div class="form-group col-6">
+                            <label class="form-label" for="guardian_email">Guardian Email</label>
+                            <input type="email" class="form-control tactile-inset" id="guardian_email" name="guardian_email" value="{{ resident.guardian_email or '' }}" placeholder="Guardian Email Address">
+                        </div>
+                        <div class="form-group col-6">
+                            <label class="form-label" for="guardian_relation">Relation</label>
+                            <select class="form-control tactile-inset" id="guardian_relation" name="guardian_relation">
+                                <option value="">-- Choose Relation --</option>
+                                <option value="Father" {% if resident.guardian_relation == 'Father' %} selected {% endif %}>Father</option>
+                                <option value="Mother" {% if resident.guardian_relation == 'Mother' %} selected {% endif %}>Mother</option>
+                                <option value="Guardian" {% if resident.guardian_relation == 'Guardian' %} selected {% endif %}>Guardian</option>
+                                <option value="Sibling" {% if resident.guardian_relation == 'Sibling' %} selected {% endif %}>Sibling</option>
+                                <option value="Other" {% if resident.guardian_relation == 'Other' %} selected {% endif %}>Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h4 style="color: var(--primary); margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px dashed var(--glass-border); padding-bottom: 0.25rem;">Emergency Contact *</h4>
+                    <div class="bento-grid" style="gap: 1.25rem;">
+                        <div class="form-group col-4">
+                            <label class="form-label" for="emergency_contact_name">Contact Name *</label>
+                            <input type="text" class="form-control tactile-inset" id="emergency_contact_name" name="emergency_contact_name" required value="{{ resident.emergency_contact_name }}">
+                        </div>
+                        <div class="form-group col-4">
+                            <label class="form-label" for="emergency_contact_phone">Contact Phone *</label>
+                            <input type="tel" class="form-control tactile-inset" id="emergency_contact_phone" name="emergency_contact_phone" required pattern="[0-9]{10}" value="{{ resident.emergency_contact_phone }}">
+                        </div>
+                        <div class="form-group col-4">
+                            <label class="form-label" for="emergency_contact_relation">Relationship *</label>
+                            <select class="form-control tactile-inset" id="emergency_contact_relation" name="emergency_contact_relation" required>
+                                <option value="">Select Relation</option>
+                                <option value="Father" {% if resident.emergency_contact_relation == 'Father' %} selected {% endif %}>Father</option>
+                                <option value="Mother" {% if resident.emergency_contact_relation == 'Mother' %} selected {% endif %}>Mother</option>
+                                <option value="Guardian" {% if resident.emergency_contact_relation == 'Guardian' %} selected {% endif %}>Guardian</option>
+                                <option value="Sibling" {% if resident.emergency_contact_relation == 'Sibling' %} selected {% endif %}>Sibling</option>
+                                <option value="Spouse" {% if resident.emergency_contact_relation == 'Spouse' %} selected {% endif %}>Spouse</option>
+                                <option value="Other" {% if resident.emergency_contact_relation == 'Other' %} selected {% endif %}>Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-12">
+                            <label class="form-label" for="emergency_contact_address">Emergency Contact Address</label>
+                            <textarea class="form-control tactile-inset" id="emergency_contact_address" name="emergency_contact_address" rows="2" placeholder="Full Address">{{ resident.emergency_contact_address or '' }}</textarea>
+                        </div>
+                    </div>
+
+                    <h4 style="color: var(--primary); margin-top: 1.5rem; margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px dashed var(--glass-border); padding-bottom: 0.25rem;">Profile Image</h4>
+                    <div class="form-group" style="margin-bottom: 2rem;">
+                        <label class="form-label" for="profile_photo">Upload New Image</label>
+                        <input type="file" class="form-control tactile-inset" id="profile_photo" name="profile_photo" accept=".jpg,.jpeg,.png" style="padding: 0.5rem;">
+                        <small style="color: var(--text-muted);">Optional. EXIF tags automatically sanitized.</small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary tactile-outset" style="width: 100%;">Save Profile Changes</button>
+                </form>
+                
+                {% else %}
+                <!-- HostelOwner Profile Edit Form -->
+                <form method="POST" action="{{ url_for('settings.update_profile') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group">
+                        <label class="form-label" for="email">Account Login Email</label>
+                        <input type="email" class="form-control tactile-inset" id="email" name="email" value="{{ user.email }}" required>
+                        <small style="color: var(--text-muted);">Change your email address for credentials and notifications.</small>
+                    </div>
+                    <div class="form-group" style="margin-top: 1rem; margin-bottom: 1.5rem;">
+                        <label class="form-label" for="email_confirm_password">Confirm Current Password *</label>
+                        <input type="password" class="form-control tactile-inset" name="confirm_password" required placeholder="Verify password to confirm changes">
+                    </div>
+                    <button type="submit" class="btn btn-primary tactile-outset" style="width: 100%;">Save Email Changes</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Tab 2: Security Access Panel -->
+        <div class="settings-tab-panel" id="securityTab">
+            <div class="bento-card" style="max-width: 550px; margin: 0 auto;">
+                <h3 style="color: var(--accent); margin-bottom: 1.5rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">Change Account Password</h3>
+                
+                <form method="POST" action="{{ url_for('settings.update_security') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="form-group">
+                        <label class="form-label" for="current_password">Current Password *</label>
+                        <input type="password" class="form-control tactile-inset" id="current_password" name="current_password" required placeholder="Verify current credentials">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="new_password">New Password *</label>
+                        <input type="password" class="form-control tactile-inset" id="new_password" name="new_password" required minlength="6" placeholder="Minimum 6 characters">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 2rem;">
+                        <label class="form-label" for="confirm_new_password">Confirm New Password *</label>
+                        <input type="password" class="form-control tactile-inset" id="confirm_new_password" name="confirm_new_password" required minlength="6" placeholder="Re-enter new password">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-danger tactile-outset" style="width: 100%;">🛡️ Update Secure Password</button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Tab 3: MFA Settings Panel -->
+        <div class="settings-tab-panel" id="mfaTab">
+            <div class="bento-card" style="max-width: 550px; margin: 0 auto;">
+                <h3 style="color: var(--success); margin-bottom: 1.5rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">Multi-Factor Authentication (OTP)</h3>
+                
+                {% if user.is_otp_enabled() %}
+                    <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.2); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+                        <h4 style="color: var(--success); margin: 0 0 0.5rem 0; font-size: 1.05rem;">✓ Two-Factor Auth is Enabled</h4>
+                        <p style="color: var(--text-secondary); margin: 0; font-size: 0.9rem;">
+                            Your login session is secured. Every login requires verification via <strong>{{ user.otp_method | upper }}</strong>.
+                        </p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('settings.update_otp') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="form-group">
+                            <label class="form-label" for="otp_method_change">Update Verification Delivery</label>
+                            <select class="form-control tactile-inset" id="otp_method_change" name="otp_method">
+                                <option value="email" {% if user.otp_method == 'email' %} selected {% endif %}>📧 Email Service ({{ user.email }})</option>
+                                <option value="sms" {% if user.otp_method == 'sms' %} selected {% endif %}>💬 SMS Mobile Network</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 1.5rem;">
+                            <label class="form-label">Confirm Current Password *</label>
+                            <input type="password" class="form-control tactile-inset" name="confirm_password" required placeholder="Verify password to confirm changes">
+                        </div>
+                        <input type="hidden" name="enable_otp" value="True">
+                        <button type="submit" class="btn btn-secondary tactile-outset" style="width: 100%; margin-bottom: 1.5rem;">Update MFA Delivery Settings</button>
+                    </form>
+
+                    <div style="border-top: 1px solid var(--glass-border); padding-top: 1.5rem; margin-top: 1.5rem;">
+                        <h4 style="color: var(--danger); font-size: 1.05rem; margin-bottom: 0.5rem;">Deactivate Two-Factor Security</h4>
+                        <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 1rem;">Disabling OTP exposes your login session to basic credential-only checks. We highly recommend keeping it enabled.</p>
+                        
+                        <form method="POST" action="{{ url_for('settings.update_otp') }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="form-group" style="margin-bottom: 1rem;">
+                                <label class="form-label">Confirm Current Password *</label>
+                                <input type="password" class="form-control tactile-inset" name="confirm_password" required placeholder="Verify password to disable security">
+                            </div>
+                            <input type="hidden" name="enable_otp" value="False">
+                            <button type="submit" class="btn btn-danger btn-sm tactile-outset" onclick="return confirm('Are you sure you want to deactivate OTP security? Your session credentials will be less secure.');">
+                                ❌ Disable MFA Security
+                            </button>
+                        </form>
+                    </div>
+
+                {% else %}
+                    <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+                        <h4 style="color: var(--warning); margin: 0 0 0.5rem 0; font-size: 1.05rem;">❌ Two-Factor Auth is Disabled</h4>
+                        <p style="color: var(--text-secondary); margin: 0; font-size: 0.9rem;">
+                            Protect your personal data and payment proofs by setting up a 6-digit verification code check at login.
+                        </p>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('settings.update_otp') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <div class="form-group">
+                            <label class="form-label" for="otp_method_setup">Deliver verification codes to:</label>
+                            <select class="form-control tactile-inset" id="otp_method_setup" name="otp_method" required>
+                                <option value="">-- Choose Delivery Method --</option>
+                                <option value="email">📧 Email Service ({{ user.email }})</option>
+                                <option value="sms">💬 SMS Mobile Network</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 1.5rem;">
+                            <label class="form-label">Confirm Current Password *</label>
+                            <input type="password" class="form-control tactile-inset" name="confirm_password" required placeholder="Verify password to enable security">
+                        </div>
+                        <input type="hidden" name="enable_otp" value="True">
+                        <button type="submit" class="btn btn-success tactile-outset" style="width: 100%;">✅ Enable Two-Factor Security Now</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+        
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function switchTab(panelId, btnEl) {
+        // Toggle tab navigations
+        const navs = document.querySelectorAll('.settings-nav-item');
+        navs.forEach(n => n.classList.remove('active'));
+        btnEl.classList.add('active');
+
+        // Toggle panels
+        const panels = document.querySelectorAll('.settings-tab-panel');
+        panels.forEach(p => p.classList.remove('active'));
+        document.getElementById(panelId).classList.add('active');
+        
+        // Save state in hash to load tab on reload
+        window.location.hash = panelId;
+    }
+    
+    // Switch to tab on load if specified in URL hash (e.g. #securityTab)
+    document.addEventListener('DOMContentLoaded', () => {
+        const hash = window.location.hash;
+        if (hash) {
+            const cleanHash = hash.replace('#', '');
+            const panel = document.getElementById(cleanHash);
+            if (panel) {
+                // Find matching btn
+                const navItems = document.querySelectorAll('.settings-nav-item');
+                let targetBtn = navItems[0];
+                if (cleanHash === 'securityTab') targetBtn = navItems[1];
+                else if (cleanHash === 'mfaTab') targetBtn = navItems[2];
+                
+                switchTab(cleanHash, targetBtn);
+            }
+        }
+    });
+</script>
+{% endblock %}

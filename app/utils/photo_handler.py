@@ -3,10 +3,13 @@ Photo Upload Handler Module
 
 Handles photo upload, validation, storage (both Base64 and file),
 and retrieval for resident profiles.
+Now with Pillow-based image metadata (EXIF/GPS) sanitization.
 """
 
 import os
 import base64
+import io
+from PIL import Image
 from werkzeug.utils import secure_filename
 from datetime import datetime
 
@@ -42,7 +45,7 @@ def validate_photo(file):
         return False, "No file selected"
 
     if not allowed_file(file.filename):
-        return False, "Invalid file format. Only JPG and PNG allowed."
+        return False, "Invalid file format. Only JPG, JPEG, and PNG allowed."
 
     # Check file size
     file.seek(0, os.SEEK_END)
@@ -55,18 +58,42 @@ def validate_photo(file):
     return True, None
 
 
-def file_to_base64(file):
+def sanitize_image_metadata(file):
     """
-    Convert file to Base64 string
+    Strip EXIF/GPS metadata from image by opening and re-saving with Pillow.
+    
+    Args:
+        file: FileStorage or file-like object
+        
+    Returns:
+        BytesIO: A clean image file-like stream
+    """
+    file.seek(0)
+    img = Image.open(file)
+    
+    # Strip EXIF: simply saving the image without exif/metadata parameters
+    # strips it by default in Pillow.
+    clean_io = io.BytesIO()
+    
+    # Preserving RGB/RGBA formats
+    img_format = img.format if img.format else 'JPEG'
+    img.save(clean_io, format=img_format)
+    clean_io.seek(0)
+    return clean_io
+
+
+def file_to_base64(file_stream):
+    """
+    Convert sanitized file stream to Base64 string
 
     Args:
-        file: FileStorage object
+        file_stream: file-like stream object
 
     Returns:
         str: Base64 encoded string
     """
-    file.seek(0)
-    file_data = file.read()
+    file_stream.seek(0)
+    file_data = file_stream.read()
     return base64.b64encode(file_data).decode('utf-8')
 
 
@@ -87,39 +114,35 @@ def base64_to_bytes(base64_string):
         return None
 
 
-def save_photo_file(file, resident_id):
+def save_photo_file(sanitized_stream, filename):
     """
     Save photo file to filesystem
 
     Args:
-        file: FileStorage object
-        resident_id: ID of resident
+        sanitized_stream: Sanitized BytesIO image stream
+        filename: Destination filename
 
     Returns:
-        tuple: (success: bool, filename: str, error: str)
+        tuple: (success: bool, error: str)
     """
     try:
         # Create folder if needed
         if not os.path.exists(PHOTO_FOLDER):
             os.makedirs(PHOTO_FOLDER)
 
-        # Get file extension
-        ext = get_file_extension(file.filename)
-
-        # Create filename
-        filename = f"resident_{resident_id}.{ext}"
         filepath = os.path.join(PHOTO_FOLDER, filename)
 
-        # Save file
-        file.seek(0)
-        file.save(filepath)
+        # Save file from stream
+        sanitized_stream.seek(0)
+        with open(filepath, 'wb') as f:
+            f.write(sanitized_stream.read())
 
-        return True, filename, None
+        return True, None
 
     except Exception as e:
-        error_msg = f"Error saving photo: {str(e)}"
+        error_msg = f"Error saving photo file: {str(e)}"
         print(error_msg)
-        return False, None, error_msg
+        return False, error_msg
 
 
 def delete_photo_file(resident_id):
@@ -133,7 +156,7 @@ def delete_photo_file(resident_id):
         bool: Success status
     """
     try:
-        # Try both jpg and png
+        # Try both jpg/png
         for ext in ['jpg', 'jpeg', 'png']:
             filepath = os.path.join(PHOTO_FOLDER, f"resident_{resident_id}.{ext}")
             if os.path.exists(filepath):
@@ -148,7 +171,7 @@ def delete_photo_file(resident_id):
 
 def save_photo(file, resident_id, db=None, resident=None):
     """
-    Save photo to both Base64 (database) and file (filesystem)
+    Sanitize, check, and save photo to both Base64 (database) and file (filesystem)
 
     Args:
         file: FileStorage object from request.files
@@ -164,28 +187,32 @@ def save_photo(file, resident_id, db=None, resident=None):
     if not is_valid:
         return False, error_msg
 
-    # Convert to Base64
     try:
-        base64_data = file_to_base64(file)
-    except Exception as e:
-        return False, f"Error processing photo: {str(e)}"
+        # Sanitize image (stripping EXIF metadata)
+        sanitized_stream = sanitize_image_metadata(file)
+        
+        # Convert to Base64
+        base64_data = file_to_base64(sanitized_stream)
+        
+        # Create filename
+        ext = get_file_extension(file.filename)
+        filename = f"resident_{resident_id}.{ext}"
 
-    # Save to file
-    success, filename, error = save_photo_file(file, resident_id)
-    if not success:
-        return False, error
+        # Save to file
+        success, error = save_photo_file(sanitized_stream, filename)
+        if not success:
+            return False, error
 
-    # Save to database (Base64)
-    if resident:
-        try:
+        # Save to database (Base64)
+        if resident:
             resident.profile_photo_base64 = base64_data.encode('utf-8')
             resident.profile_image = filename
             if db:
                 db.session.commit()
-        except Exception as e:
-            return False, f"Error saving to database: {str(e)}"
 
-    return True, None
+        return True, None
+    except Exception as e:
+        return False, f"Error processing and sanitizing photo: {str(e)}"
 
 
 def load_photo(resident, prefer='file'):
@@ -198,12 +225,8 @@ def load_photo(resident, prefer='file'):
 
     Returns:
         tuple: (photo_data, source, mime_type, error)
-            - photo_data: bytes or Base64 string
-            - source: 'file' or 'base64'
-            - mime_type: 'image/jpeg' or 'image/png'
-            - error: error message if any
     """
-    image_ext = 'jpg'  # default
+    image_ext = 'jpg'
 
     if resident.profile_image:
         image_ext = resident.profile_image.rsplit('.', 1)[1].lower() if '.' in resident.profile_image else 'jpg'
@@ -231,20 +254,12 @@ def load_photo(resident, prefer='file'):
         except Exception as e:
             print(f"Error reading Base64 photo: {e}")
 
-    # Return default image
     return None, None, mime_type, "No photo available"
 
 
 def get_photo_data_uri(resident, prefer='base64'):
     """
     Get photo as data URI for embedding in HTML
-
-    Args:
-        resident: Resident model instance
-        prefer: 'file' or 'base64'
-
-    Returns:
-        str: Data URI string (e.g., "data:image/jpeg;base64,/9j/...")
     """
     photo_data, source, mime_type, error = load_photo(resident, prefer)
 
@@ -256,7 +271,6 @@ def get_photo_data_uri(resident, prefer='base64'):
             photo_data = photo_data.decode('utf-8')
         return f"data:{mime_type};base64,{photo_data}"
     else:
-        # For file source, convert to Base64
         if isinstance(photo_data, bytes):
             photo_b64 = base64.b64encode(photo_data).decode('utf-8')
             return f"data:{mime_type};base64,{photo_b64}"
@@ -267,26 +281,14 @@ def get_photo_data_uri(resident, prefer='base64'):
 def get_photo_url(resident):
     """
     Get photo URL for use in <img> src attribute
-
-    Args:
-        resident: Resident model instance
-
-    Returns:
-        str: URL path to photo
     """
-    if resident.profile_image:
+    if resident and resident.profile_image:
         return f"/static/images/{resident.profile_image}"
     return "/static/images/default_profile.png"
 
 
 def cleanup_old_photo(resident_id):
     """
-    Delete old photo file for resident (before uploading new one)
-
-    Args:
-        resident_id: ID of resident
-
-    Returns:
-        bool: Success status
+    Delete old photo file for resident
     """
     return delete_photo_file(resident_id)

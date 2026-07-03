@@ -1,352 +1,125 @@
-# Hostel Resident Management System
+# Secure Multi-Hostel Resident Management SaaS Platform
 
-A modern, professional web-based hostel management system with QR code-based resident profiles. Built with Flask, SQLite, and responsive design.
+A modern, highly secure, and professional web-based Hostel Resident Management SaaS Platform. It provides a robust role-based access system (SuperAdmin, HostelOwner, and Resident), dynamic QR-linked profiles, and secure multi-factor authentication (OTP via email or SMS).
 
-![Python](https://img.shields.io/badge/Python-3.8%2B-blue)
-![Flask](https://img.shields.io/badge/Flask-3.0.0-green)
-![License](https://img.shields.io/badge/License-MIT-yellow)
+Designed with a **"Defense in Depth"** security model suitable for professional enterprise environments.
 
-## Features
+---
 
-### For Residents
+## 🔒 Security & Architecture (Defense in Depth)
 
-- **One-time Registration** - Register once with comprehensive details
-- **Secure Login** - Password-protected access to personal profile
-- **Profile Management** - Update contact and emergency information
-- **Unique QR Code** - Each resident gets a permanent QR code
-- **Real-time Updates** - Changes reflect instantly on QR-linked profiles
+The system is designed with multiple security layers to protect resident data, payments, and system access:
 
-### For Admins
+1. **Authentication & Identity Verification**
+   * **OAuth 2.0 / OpenID Connect:** Integrated with **Google Sign-In** via Authlib to authenticate users securely using trusted external providers.
+   * **Multi-Factor Authentication (OTP):** Optional 2FA delivering 6-digit verification codes using **Twilio (for SMS)** or **SMTP Relays (like SendGrid for Email)** with cryptographically hashed storage in the database and a 10-minute validity TTL.
+   * **Re-Authentication Flow:** High-sensitivity actions (updating emails, password changes, or MFA toggles) require re-entering the current password.
+   * **Session Expiry & Invalidation:** On password changes, a `password_version` token is updated to invalidate other active sessions immediately.
 
-- **Full Control** - Manage all resident records
-- **Dashboard** - View all residents organized by room number
-- **Edit Capabilities** - Update any resident's information
-- **Delete Records** - Remove residents when they leave
-- **Search & Filter** - Easily find residents
+2. **Data Security & Privacy**
+   * **AES-128/256 Encryption at Rest:** Personally Identifiable Information (PII) like `phone_number`, `permanent_address`, and `aadhar_id` are encrypted in the database using the standard AES-based Fernet algorithm (via `cryptography` library) transparently through model property getters and setters.
+   * **Password Hashing:** Stored securely using Werkzeug's state-of-the-art password hashing functions.
+   * **Data Exposure Prevention:** Sensitive identifiers are masked (e.g. Aadhar card masked to `XXXX-XXXX-1234` and phone numbers masked to `+1***5678`).
 
-### Technical Features
+3. **Application & File Security**
+   * **Rate Limiting:** Enforces strict limit intervals (e.g., 5 requests per minute on `/login` and `/verify-otp`) using `Flask-Limiter` to protect against brute-force and credential-stuffing attacks.
+   * **Content Security Policy (CSP):** Rigorous response headers restricting where script, styling, connect, and media assets can load from, mitigating Cross-Site Scripting (XSS) and data injection.
+   * **Secure File Delivery:** Payment receipt attachments are renamed using random UUIDs and saved in the private `instance/` folder outside the public web root. Access is restricted using a custom endpoint (`/secure-receipt/<filename>`) that checks user session permissions.
+   * **Media Sanitization:** Resident profiles and payment screenshot uploads are processed using `Pillow` to strip all EXIF/GPS device metadata to prevent location leaks.
+   * **Immutable Audit Logging:** Keeps persistent logs of all authentication, settings modifications, profile changes, and admin decisions (e.g., payment approvals/rejections) matching usernames, action types, and IP addresses.
 
-- **Responsive Design** - Works on all devices
-- **Modern UI** - Clean, professional interface
-- **Role-based Access** - Separate admin and resident permissions
-- **Dynamic Database** - SQLite for easy deployment
-- **QR Download** - Export QR codes as images
+---
 
-## Quick Start
+## 🚀 Quick Start Guide
 
 ### Prerequisites
+* Python 3.8 or higher installed on your system.
+* A basic terminal environment (cmd, PowerShell, bash).
 
-- Python 3.8 or higher
-- pip (Python package installer)
+### Step 1: Clone and Set Up Environment Variables
+1. Copy `.env.example` to create your local environment file:
+   ```cmd
+   copy .env.example .env
+   ```
+2. Open `.env` and configure your settings:
+   * Generate an `ENCRYPTION_KEY` using python:
+     ```bash
+     python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+     ```
+   * Set up your Twilio credentials, Google Client Client IDs, and Mail Server settings.
 
-### Installation
+### Step 2: Automatic Installation (Recommended)
 
-1.**Clone or download the project**
-
-```bash
-cd hostel_management_system
+#### For Windows:
+```cmd
+setup.bat
 ```
 
-2.**Install dependencies**
-
+#### For Linux/Mac:
 ```bash
-pip install -r requirements.txt --break-system-packages
+chmod +x setup.sh
+./setup.sh
 ```
 
-3.**Run the application**
+*The setup scripts check Python, install required dependencies in a virtual environment (`venv`), verify media directory structures, and generate the SQLite database schema automatically.*
 
-```bash
-python app.py
-```
+### Step 3: Run the Application
+1. Activate the virtual environment (if not already active):
+   * **Windows:** `venv\Scripts\activate.bat`
+   * **Linux/Mac:** `source venv/bin/activate`
+2. Launch the Flask development server:
+   ```bash
+   python app.py
+   ```
+3. Open your browser and navigate to: **`http://localhost:5000`**
 
-4.**Access the system**
+### Step 4: Login with Default Credentials
+To access the system, you can use the default Admin account:
+* **Username/Email:** `demo`
+* **Password:** `demo`
 
-- Open browser and go to: `http://localhost:5000`
-- Admin credentials:
-  - Username: `admin`
-  - Password: `admin123`
+---
 
-## Project Structure
+## 📂 Project Structure
 
 ```structure
 hostel_management_system/
-│
-├── app.py                      # Main Flask application
-├── config.py                   # Configuration settings
-├── requirements.txt            # Python dependencies
-├── README.md                   # This file
-│
-├── models/
-│   └── db.py                   # Database models
-│
-├── utils/
-│   └── qr_generator.py         # QR code generation
-│
-├── static/
-│   ├── css/
-│   │   └── style.css           # Professional styling
-│   ├── js/
-│   │   └── script.js           # Interactive features
-│   ├── images/                 # Profile images
-│   └── qr/                     # Generated QR codes
-│
-└── templates/
-    ├── base.html               # Base template
-    ├── index.html              # Home page
-    ├── register.html           # Registration form
-    ├── resident_login.html     # Resident login
-    ├── admin_login.html        # Admin login
-    ├── resident_profile.html   # Profile display
-    ├── edit_profile.html       # Edit profile
-    ├── admin_dashboard.html    # Admin panel
-    └── error.html              # Error pages
+├── app/
+│   ├── models/
+│   │   └── db.py               # Database schemas (User, Resident, Hostel, Payment, AuditLog)
+│   ├── routes/
+│   │   ├── admin.py            # SuperAdmin operations
+│   │   ├── owner.py            # Hostel Owner functions (QR upload, verify payments)
+│   │   ├── resident.py         # Resident dashboard and payment submissions
+│   │   ├── settings.py         # Tabbed profile, security, and MFA settings
+│   │   ├── auth.py             # Login, Google OAuth callback, OTP verification
+│   │   └── api.py              # Scoped secure APIs for scanning dynamic QR profiles
+│   ├── static/
+│   │   ├── css/style.css       # Premium glassmorphic interface styles
+│   │   └── js/script.js        # Dynamic front-end behaviors and scripts
+│   ├── templates/              # HTML views (with progressive disclosure tabs & dialogs)
+│   └── utils/
+│       ├── encryption.py       # AES cryptography getters/setters helper
+│       ├── photo_handler.py    # Pillow metadata sanitizer & UUID photo saver
+│       ├── qr_generator.py     # Dynamic profiles QR generator
+│       ├── email_sender.py     # SMTP verification and notification sender
+│       └── sms_sender.py       # Twilio API SMS handler
+├── instance/
+│   ├── database.db             # In-process SQLite database storage
+│   └── uploads/payments/       # Secure folder for payment receipts (outside web root)
+├── app.py                      # Application factory entrypoint
+├── config.py                   # Configuration environment parser
+├── requirements.txt            # Project dependencies
+├── setup.bat / setup.sh        # Platform-specific automation bootstrapper
+└── .env / .env.example         # System credentials and encryption key definitions
 ```
-
-## Usage Guide
-
-### Resident Guide
-
-1. **Registration**
-   - Go to the home page
-   - Click "Register Now"
-   - Fill in all required details
-   - Create a password
-   - Submit the form
-   - You'll receive a unique QR code
-
-2. **Login**
-   - Click "Resident Login"
-   - Enter your email and password
-   - Access your dashboard
-
-3. **Update Profile**
-   - Login to your account
-   - Click "Edit Profile"
-   - Update allowed fields (contact info, address, emergency contact)
-   - Save changes
-
-4. **Download QR Code**
-   - View your profile
-   - Click "Download QR Code"
-   - Share it for easy profile access
-
-### For Admin
-
-1. **Login**
-   - Click "Admin Login"
-   - Default credentials:
-     - Username: `admin`
-     - Password: `admin123`
-   - **Change these in production!**
-
-2. **View All Residents**
-   - Access the admin dashboard
-   - See all residents in a table
-   - Use search to find specific residents
-
-3. **Edit Resident**
-   - Click the edit button next to any resident
-   - Modify any field
-   - Update password if needed
-   - Save changes
-
-4. **Delete Resident**
-   - Click delete button
-   - Confirm deletion
-   - Resident can re-register after deletion
-
-## Configuration
-
-### Change Admin Credentials
-
-Edit `config.py`:
-
-```python
-ADMIN_USERNAME = 'your_username'
-ADMIN_PASSWORD = 'your_secure_password'
-```
-
-### Database Configuration
-
-The system uses SQLite by default. To change database:
-
-```python
-SQLALCHEMY_DATABASE_URI = 'sqlite:///database.db'
-```
-
-### QR Code Base URL
-
-Update in `utils/qr_generator.py` for production:
-
-```python
-base_url = 'https://yourdomain.com'
-```
-
-## Deployment
-
-### Local Deployment
-
-```bash
-python app.py
-```
-
-### Production Deployment
-
-1. **Set environment variables**
-
-```bash
-export SECRET_KEY='your-secret-key'
-export FLASK_ENV=production
-```
-
-2.**Use production WSGI server**
-
-```bash
-pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:5000 app:app
-```
-
-3.**Configure reverse proxy (Nginx)**
-
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;
-    
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-```
-
-## Database Schema
-
-### Resident Table
-
-- `id` - Primary key
-- `full_name` - Resident's full name
-- `email` - Unique email (login username)
-- `phone` - Unique phone number
-- `date_of_birth` - DOB
-- `gender` - Gender
-- `permanent_address` - Full address
-- `city` - City
-- `state` - State
-- `pincode` - Postal code
-- `room_number` - Unique room number
-- `date_of_joining` - Joining date
-- `emergency_contact_name` - Emergency contact
-- `emergency_contact_phone` - Emergency phone
-- `emergency_contact_relation` - Relationship
-- `password_hash` - Hashed password
-- `profile_image` - Profile picture filename
-- `created_at` - Registration timestamp
-- `updated_at` - Last update timestamp
-
-## Security Features
-
-- Password hashing using Werkzeug
-- Session-based authentication
-- CSRF protection (Flask built-in)
-- SQL injection protection (SQLAlchemy ORM)
-- Role-based access control
-- Input validation
-- Unique constraints on email, phone, room
-
-## Customization
-
-### Change Color Scheme
-
-Edit `static/css/style.css`:
-
-```css
-:root {
-    --primary-color: #2563eb;  /* Change to your color */
-    --secondary-color: #10b981;
-    --danger-color: #ef4444;
-}
-```
-
-### Add New Fields
-
-1. Update `models/db.py` - Add field to Resident model
-2. Update templates - Add form inputs
-3. Update `app.py` - Handle new field in routes
-4. Run migration or recreate database
-
-## QR Code System
-
-- Each resident gets a unique QR code upon registration
-- QR code contains only the profile URL (no personal data)
-- Scanning opens the public profile page
-- QR codes never need regeneration (dynamic data)
-- Can be downloaded and printed
-
-## Troubleshooting
-
-### Database not created
-
-```bash
-python
->>> from app import app, db
->>> with app.app_context():
-...     db.create_all()
-```
-
-### QR codes not generating
-
-- Ensure `static/qr/` directory exists
-- Check write permissions
-- Verify qrcode library is installed
-
-### Port already in use
-
-```bash
-# Use different port
-python app.py --port 5001
-```
-
-### Import errors
-
-```bash
-pip install -r requirements.txt --break-system-packages --force-reinstall
-```
-
-## Future Enhancements
-
-- [ ] Fees management
-- [ ] Attendance tracking
-- [ ] Complaints/Requests system
-- [ ] Email notifications
-- [ ] Bulk operations
-- [ ] Data export (CSV/Excel)
-- [ ] Photo upload for residents
-- [ ] Mobile app
-- [ ] Multi-hostel support
-- [ ] Advanced analytics
-
-## License
-
-MIT License - Feel free to use and modify for your needs.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Support
-
-For issues and questions:
-
-- Create an issue on GitHub
-- Email: <pranjalshukla2222@gmail.com>
-
-## Acknowledgments
-
-- Flask framework
-- QRCode library
-- Modern CSS design patterns
-- Open source community
 
 ---
+
+## 🛡️ License
+Distributed under the **MIT License**. See `LICENSE` for more information.
+
+---
+
+## 📧 Support
+For issues, configuration queries, or integration help, please reach out to **pranjalshukla2222@gmail.com**.

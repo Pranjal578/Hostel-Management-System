@@ -1,9 +1,12 @@
 from dotenv import load_dotenv
 load_dotenv()
 
-from app import app
+from app import create_app
 
-# Vercel needs this
+# Instantiate the Flask application using the factory pattern
+app = create_app()
+
+# Vercel or Gunicorn processes will use this reference
 application = app
 
 if __name__ == "__main__":

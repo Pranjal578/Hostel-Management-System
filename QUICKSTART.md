@@ -57,8 +57,8 @@ http://localhost:5000
 
 ### Admin Access
 
-- **Username:** `admin`
-- **Password:** `admin123`
+- **Username:** `demo`
+- **Password:** `demo`
 
 **IMPORTANT:** Change these credentials in production!
 

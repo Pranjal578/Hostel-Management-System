@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Hostel Management SaaS{% endblock %}
+
+{% block content %}
+<!-- SuperAdmin Dashboard View -->
+{% if session.get('user_role') == 'SuperAdmin' %}
+<div class="hero">
+    <h1>👑 System Director Control</h1>
+    <p>Monitor multi-hostel allocation, register tenant owners, and manage platform capacity.</p>
+</div>
+
+<div class="bento-grid">
+    <!-- Stats Cards -->
+    <div class="bento-card glass-minimal col-4 text-center">
+        <h2 style="font-size: 3rem; color: var(--primary); margin-bottom: 0.25rem; text-shadow: 0 0 10px var(--primary-glow);">{{ hostels|length }}</h2>
+        <p style="font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.85rem;">Active Hostels</p>
+    </div>
+    <div class="bento-card glass-minimal col-4 text-center">
+        <h2 style="font-size: 3rem; color: var(--accent); margin-bottom: 0.25rem; text-shadow: 0 0 10px var(--accent-glow);">{{ owners|length }}</h2>
+        <p style="font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.85rem;">Registered Owners</p>
+    </div>
+    <div class="bento-card glass-minimal col-4 text-center">
+        <h2 style="font-size: 3rem; color: var(--success); margin-bottom: 0.25rem; text-shadow: 0 0 10px var(--success-glow);">{{ total_capacity }}</h2>
+        <p style="font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.85rem;">Platform Capacity</p>
+    </div>
+
+    <!-- Create Owner Portal -->
+    <div class="bento-card glass-minimal col-6">
+        <h3 style="color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">👤 Register Hostel Owner</h3>
+        <form method="POST" action="{{ url_for('admin.create_owner') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" for="owner_email">Owner Login Email</label>
+                <input type="email" class="form-control" id="owner_email" name="email" required placeholder="owner@hostelsaas.com">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="owner_password">Password</label>
+                <input type="password" class="form-control" id="owner_password" name="password" required minlength="6" placeholder="Enter secure password">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="owner_confirm">Confirm Password</label>
+                <input type="password" class="form-control" id="owner_confirm" name="confirm_password" required placeholder="Re-enter password">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Create Owner Account</button>
+        </form>
+    </div>
+
+    <!-- Create Hostel Portal -->
+    <div class="bento-card glass-minimal col-6">
+        <h3 style="color: var(--accent); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">🏢 Create New Hostel</h3>
+        <form method="POST" action="{{ url_for('admin.create_hostel') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" for="hostel_name">Hostel Name</label>
+                <input type="text" class="form-control" id="hostel_name" name="hostel_name" required placeholder="e.g. Royal Palace Residency">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="location">Location Address</label>
+                <input type="text" class="form-control" id="location" name="location" required placeholder="City or Full Address">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="total_capacity">Total Capacity</label>
+                <input type="number" class="form-control" id="total_capacity" name="total_capacity" min="10" max="1000" required placeholder="Total rooms/residents allowed">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="owner_id">Assign Owner</label>
+                <select class="form-control" id="owner_id" name="owner_id" required>
+                    <option value="">-- Choose Registered Owner --</option>
+                    {% for owner in owners %}
+                        <option value="{{ owner.id }}">{{ owner.email }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-secondary" style="width: 100%; border-color: var(--accent); color: var(--text-primary);">Establish Hostel</button>
+        </form>
+    </div>
+
+    <!-- Hostels Catalog -->
+    <div class="bento-card glass-minimal col-12">
+        <h3 style="color: var(--primary); margin-bottom: 1rem;">🏢 Active Hostels Catalog</h3>
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Hostel Name</th>
+                        <th>Location</th>
+                        <th>Capacity</th>
+                        <th>Assigned Manager</th>
+                        <th>Established Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for h in hostels %}
+                    <tr>
+                        <td><strong>#{{ h.id }}</strong></td>
+                        <td>{{ h.hostel_name }}</td>
+                        <td>{{ h.location }}</td>
+                        <td>{{ h.total_capacity }} Beds</td>
+                        <td>{{ h.owner.email }}</td>
+                        <td>{{ h.created_at.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin.delete_hostel', hostel_id=h.id) }}" onsubmit="return confirm('Delete this hostel? All links will be removed.');" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No hostels established in system yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- HostelOwner Dashboard View -->
+{% elif session.get('user_role') == 'HostelOwner' %}
+<div style="margin-top: 1rem; margin-bottom: 2rem;">
+    <h1 style="font-size: 2.2rem; margin-bottom: 0.25rem;">🏠 {{ hostel.hostel_name }}</h1>
+    <p style="color: var(--text-secondary); margin: 0;">Location: {{ hostel.location }} | Manager Access Portal</p>
+</div>
+
+<div class="bento-grid">
+    <!-- Hostel Statistics Bento Grid -->
+    <div class="bento-card glass-minimal col-3 text-center">
+        <h2 style="font-size: 2.5rem; color: var(--primary); margin-bottom: 0.25rem;">{{ occupied_rooms }}</h2>
+        <p style="font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Occupied Beds</p>
+    </div>
+    <div class="bento-card glass-minimal col-3 text-center">
+        <h2 style="font-size: 2.5rem; color: var(--accent); margin-bottom: 0.25rem;">{{ capacity_left }}</h2>
+        <p style="font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Beds Left</p>
+    </div>
+    <div class="bento-card glass-minimal col-3 text-center">
+        <h2 style="font-size: 2.5rem; color: var(--warning); margin-bottom: 0.25rem;">{{ pending_payments|length }}</h2>
+        <p style="font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Pending Reviews</p>
+    </div>
+    <div class="bento-card glass-minimal col-3 text-center">
+        <h2 style="font-size: 2.5rem; color: var(--success); margin-bottom: 0.25rem;">{{ verified_payments|length }}</h2>
+        <p style="font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Verified Receipts</p>
+    </div>
+
+    <!-- Scanner & Payment QR Management -->
+    <div class="bento-card glass-minimal col-6" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <h3 style="color: var(--primary); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">📸 Secure QR Scanner</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">Scan a resident's QR code to instantly verify their identity and outstanding rent payments history.</p>
+            <div id="reader" style="width: 100%; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--glass-border); margin-bottom: 1rem;"></div>
+        </div>
+        <div style="display: flex; gap: 1rem;">
+            <button class="btn btn-primary" onclick="startScanner()" style="flex: 1;">Activate Camera</button>
+            <button class="btn btn-secondary" onclick="stopScanner()" style="flex: 1;">Deactivate</button>
+        </div>
+    </div>
+
+    <div class="bento-card glass-minimal col-6" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <h3 style="color: var(--accent); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">💳 Payment QR Configuration</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">Upload your UPI, Google Pay, or banking QR code image. Residents will use this image on their dashboard to pay rent.</p>
+            
+            <div style="text-align: center; margin-bottom: 1rem;">
+                {% if hostel.payment_qr_code %}
+                    <img src="{{ hostel.payment_qr_code }}" alt="UPI QR" style="max-height: 160px; border-radius: var(--radius-md); border: 2px solid var(--glass-border); padding: 5px; background: white;">
+                {% else %}
+                    <div style="height: 160px; border: 2px dashed var(--glass-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-weight: 500;">
+                        No QR Configured Yet
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <form method="POST" action="{{ url_for('owner.upload_payment_qr') }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="file" class="form-control" name="payment_qr" accept="image/*" required style="padding: 0.5rem;">
+                <button type="submit" class="btn btn-success btn-sm">Upload</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Pending Payments Review List -->
+    <div class="bento-card glass-minimal col-12">
+        <h3 style="color: var(--warning); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">💸 Pending Payment Verification</h3>
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Resident</th>
+                        <th>Room</th>
+                        <th>Amount</th>
+                        <th>Date Paid</th>
+                        <th>Transaction ID</th>
+                        <th>Attachment</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in pending_payments %}
+                    <tr>
+                        <td><strong>{{ p.resident.full_name }}</strong></td>
+                        <td>Room {{ p.resident.room_number }}</td>
+                        <td>${{ p.amount }}</td>
+                        <td>{{ p.payment_date.strftime('%b %d, %Y') }}</td>
+                        <td><code>{{ p.transaction_id }}</code></td>
+                        <td>
+                            <a href="#" onclick="openPaymentReceipt('{{ p.screenshot_path }}', '{{ p.resident.full_name }}', '${{ p.amount }}')" style="color: var(--primary); text-decoration: underline; font-weight: 600;">View Receipt</a>
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <form method="POST" action="{{ url_for('owner.verify_payment', payment_id=p.id) }}" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-success btn-sm">Confirm</button>
+                                </form>
+                                <button class="btn btn-danger btn-sm" onclick="openRejectionModal('{{ p.id }}')">Reject</button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No pending transactions to review.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Active Residents list -->
+    <div class="bento-card glass-minimal col-12">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="color: var(--primary); margin: 0;">📋 Active Hostel Residents</h3>
+            <!-- Search Resident Form -->
+            <form method="GET" action="{{ url_for('owner.dashboard') }}" style="display: flex; gap: 0.5rem; max-width: 380px; width: 100%;">
+                <input type="text" class="form-control" name="search" placeholder="Search name, room, phone..." value="{{ search_query }}" style="padding: 0.5rem 1rem;">
+                <button type="submit" class="btn btn-primary btn-sm">Search</button>
+            </form>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Room</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Join Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in residents %}
+                    <tr>
+                        <td><strong>{{ r.room_number }}</strong></td>
+                        <td>{{ r.full_name }}</td>
+                        <td>{{ r.user.email }}</td>
+                        <td>{{ r.phone_decrypted }}</td>
+                        <td>{{ r.date_of_joining.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="{{ url_for('owner.edit_resident', resident_id=r.id) }}" class="btn btn-secondary btn-sm" style="padding: 0.25rem 0.65rem;">Edit</a>
+                                <form method="POST" action="{{ url_for('owner.delete_resident', resident_id=r.id) }}" onsubmit="return confirm('Delete this resident profile permanently? This cannot be undone.');" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-danger btn-sm" style="padding: 0.25rem 0.65rem;">Remove</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No residents match search filters.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Dialogs for review and scanning -->
+
+<!-- Modal 1: View Payment Receipt Screenshot -->
+<div class="modal" id="receiptModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="receiptModalTitle" style="margin: 0; color: var(--primary);">Review Receipt Screenshot</h3>
+            <button class="modal-close" onclick="closeModal('receiptModal')">×</button>
+        </div>
+        <div style="text-align: center; max-height: 400px; overflow-y: auto;">
+            <!-- If file is PDF, use iframe; else use img -->
+            <img id="receiptImage" src="" alt="Payment Receipt" style="max-width: 100%; border-radius: var(--radius-md); border: 1px solid var(--glass-border); display: none;">
+            <iframe id="receiptPDF" src="" style="width: 100%; height: 350px; border: none; display: none;"></iframe>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2: Payment Rejection Dialog -->
+<div class="modal" id="rejectModal">
+    <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+            <h3 style="margin: 0; color: var(--danger);">Reject Payment</h3>
+            <button class="modal-close" onclick="closeModal('rejectModal')">×</button>
+        </div>
+        <form id="rejectionForm" method="POST" action="">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" for="rejection_reason">Reason for Rejection *</label>
+                <textarea class="form-control" id="rejection_reason" name="rejection_reason" rows="3" required placeholder="e.g. Transaction ID mismatch, upload details invalid"></textarea>
+            </div>
+            <button type="submit" class="btn btn-danger" style="width: 100%;">Confirm Rejection</button>
+        </form>
+    </div>
+</div>
+
+<!-- Modal 3: Secure Scanner Scan Success Detail -->
+<div class="modal" id="scanSuccessModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 style="margin: 0; color: var(--success);" id="scanResidentName">Resident Identity Details</h3>
+            <button class="modal-close" onclick="closeModal('scanSuccessModal')">×</button>
+        </div>
+        <div style="display: flex; gap: 1.5rem; align-items: flex-start;">
+            <img id="scanResidentImage" src="" alt="Photo" style="width: 120px; height: 120px; object-fit: cover; border-radius: var(--radius-md); border: 2px solid var(--glass-border);">
+            <div style="flex: 1;">
+                <p style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1rem;"><strong style="color: var(--primary);">Room:</strong> <span id="scanResidentRoom"></span></p>
+                <p style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1rem;"><strong style="color: var(--primary);">Email:</strong> <span id="scanResidentEmail"></span></p>
+                <p style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1rem;"><strong style="color: var(--primary);">Phone:</strong> <span id="scanResidentPhone"></span></p>
+                <p style="margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1rem;"><strong style="color: var(--primary);">Joined:</strong> <span id="scanResidentJoined"></span></p>
+            </div>
+        </div>
+        <h4 style="margin-top: 1.5rem; color: var(--accent); border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">Recent Payments</h4>
+        <div id="scanResidentPayments" style="max-height: 150px; overflow-y: auto; margin-top: 0.5rem; font-size: 0.9rem;">
+            <!-- Dynamic entries loaded here -->
+        </div>
+    </div>
+</div>
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include html5-qrcode library for scanner -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+    // Open payment screenshot/PDF modal
+    function openPaymentReceipt(path, residentName, amount) {
+        document.getElementById('receiptModalTitle').innerText = `${residentName} - ${amount}`;
+        const imgEl = document.getElementById('receiptImage');
+        const pdfEl = document.getElementById('receiptPDF');
+        
+        if (path.toLowerCase().endsWith('.pdf')) {
+            imgEl.style.display = 'none';
+            pdfEl.src = path;
+            pdfEl.style.display = 'block';
+        } else {
+            pdfEl.style.display = 'none';
+            imgEl.src = path;
+            imgEl.style.display = 'block';
+        }
+        
+        document.getElementById('receiptModal').classList.add('active');
+    }
+
+    // Open rejection dialog with custom ID actions
+    function openRejectionModal(paymentId) {
+        document.getElementById('rejectionForm').action = `/owner/payment/reject/${paymentId}`;
+        document.getElementById('rejectModal').classList.add('active');
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('active');
+    }
+
+    // HTML5 QR Code Scanner functions
+    let html5QrCode = null;
+
+    function startScanner() {
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("reader");
+        }
+        
+        const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+            // Stop scanner once scanned
+            stopScanner();
+            
+            // Decoded text contains resident URL: e.g. http://localhost:5000/profile/4
+            // Extract resident ID
+            const matches = decodedText.match(/\/profile\/(\d+)/);
+            if (matches && matches[1]) {
+                const residentId = matches[1];
+                fetchResidentDetails(residentId);
+            } else {
+                alert("Invalid QR format scanned!");
+            }
+        };
+        
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        
+        // Use back camera as default
+        html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+            .catch(err => {
+                console.error("Camera startup failed", err);
+                alert("Could not start camera: " + err);
+            });
+    }
+
+    function stopScanner() {
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().then(ignore => {
+                console.log("Scanner stopped.");
+            }).catch(err => {
+                console.error("Failed to stop scanner", err);
+            });
+        }
+    }
+
+    // Fetch resident profile and billing details securely via API
+    function fetchResidentDetails(id) {
+        fetch(`/api/resident-details/${id}`)
+            .then(res => {
+                if (res.status === 403) {
+                    alert("Permission denied. You do not manage this resident.");
+                    throw new Error("403 Forbidden");
+                }
+                return res.json();
+            })
+            .then(data => {
+                // Populating scan result details modal
+                document.getElementById('scanResidentName').innerText = data.full_name;
+                document.getElementById('scanResidentRoom').innerText = data.room_number;
+                document.getElementById('scanResidentEmail').innerText = data.email;
+                document.getElementById('scanResidentPhone').innerText = data.phone;
+                document.getElementById('scanResidentJoined').innerText = data.date_of_joining;
+                document.getElementById('scanResidentImage').src = data.profile_image ? `/static/images/${data.profile_image}` : '/static/images/default_profile.png';
+                
+                // Build payments rows
+                const paymentDiv = document.getElementById('scanResidentPayments');
+                paymentDiv.innerHTML = '';
+                
+                if (data.payments && data.payments.length > 0) {
+                    data.payments.forEach(p => {
+                        const statusClass = p.status === 'Verified' ? 'badge-verified' : (p.status === 'Pending' ? 'badge-pending' : 'badge-rejected');
+                        paymentDiv.innerHTML += `
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; padding:0.5rem; background:rgba(255,255,255,0.02); border-radius:var(--radius-sm);">
+                                <span>Amount: $${p.amount} (${p.payment_date})</span>
+                                <span class="badge ${statusClass}">${p.status}</span>
+                            </div>
+                        `;
+                    });
+                } else {
+                    paymentDiv.innerHTML = '<div style="color:var(--text-muted);">No payment logs found.</div>';
+                }
+                
+                // Show modal
+                document.getElementById('scanSuccessModal').classList.add('active');
+            })
+            .catch(err => console.error("API error", err));
+    }
+</script>
+{% endblock %}

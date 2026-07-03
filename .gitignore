@@ -1,4 +1,4 @@
-# Python
+# Python Compile Caches
 __pycache__/
 *.py[cod]
 *$py.class
@@ -24,49 +24,55 @@ wheels/
 venv/
 ENV/
 env/
-.venv
+.venv/
+pip-selfcheck.json
 
-# Flask
+# Flask / Database Files
 instance/
 .webassets-cache
 *.db
 database.db
 
-# IDE
+# IDEs and Editors
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.project
+.pydevproject
+.settings/
 
-# OS
+# OS-generated files
 .DS_Store
 Thumbs.db
+ehthumbs.db
+desktop.ini
 
-# Project specific
+# Project-specific Media Files and Assets
 static/qr/*.png
-static/images/uploads/
-
-# Keep these directories
+static/images/resident_*.png
+static/images/resident_*.jpg
+static/images/resident_*.jpeg
 !static/qr/.gitkeep
 !static/images/.gitkeep
 
-# Logs
+# Logs and Debug
 *.log
 logs/
+gunicorn.log
+pip-log.txt
 
-# Environment variables
+# Environment variables & secrets
 .env
 .env.local
 .env.*.local
+.env.production
+.env.staging
+.env.development
 
-# Temporary files
+# Temporary / Backup Files
 *.tmp
 *.temp
-
-# Production/Deployment
-.env.production
-gunicorn.log
-*.sock
-tmp/
-
+*.bak
+*.swp

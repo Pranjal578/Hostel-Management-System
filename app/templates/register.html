@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Resident Registration{% endblock %}
+
+{% block content %}
+<div class="bento-grid">
+    <div class="bento-card clay-card col-12">
+        <div style="text-align: center; margin-bottom: 2.5rem;">
+            <div style="font-size: 3.5rem; margin-bottom: 0.5rem; filter: drop-shadow(0 0 10px var(--primary-glow));">📝</div>
+            <h2 style="font-size: 2.2rem; margin-bottom: 0.25rem;">Resident Registration</h2>
+            <p style="color: var(--text-secondary); margin: 0;">Create your profile credentials and request hostel allocation</p>
+        </div>
+        
+        <form method="POST" action="{{ url_for('auth.register') }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <!-- Segment 1: Credentials & Hostel -->
+            <h3 style="color: var(--primary); font-size: 1.25rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-bottom: 1.5rem; margin-top: 1rem;">1. Core Account & Hostel Selection</h3>
+            
+            <div class="bento-grid" style="gap: 1.25rem;">
+                <div class="form-group col-6">
+                    <label class="form-label" for="email">Login Email Address *</label>
+                    <input type="email" class="form-control tactile-inset" id="email" name="email" required placeholder="name@domain.com" value="{% if not clear_email %}{{ request.form.get('email', '') }}{% endif %}">
+                </div>
+                <div class="form-group col-6">
+                    <label class="form-label" for="hostel_id">Select Target Hostel *</label>
+                    <select class="form-control tactile-inset" id="hostel_id" name="hostel_id" required>
+                        <option value="">-- Choose Hostel --</option>
+                        {% for h in hostels %}
+                            <option value="{{ h.id }}" {% if request.form.get('hostel_id')|string == h.id|string %}selected{% endif %}>{{ h.hostel_name }} ({{ h.location }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group col-6">
+                    <label class="form-label" for="password">Password *</label>
+                    <input type="password" class="form-control tactile-inset" id="password" name="password" required minlength="6" placeholder="At least 6 characters">
+                </div>
+                <div class="form-group col-6">
+                    <label class="form-label" for="confirm_password">Confirm Password *</label>
+                    <input type="password" class="form-control tactile-inset" id="confirm_password" name="confirm_password" required minlength="6" placeholder="Re-enter password">
+                </div>
+            </div>
+
+            <!-- Segment 2: Personal Profile -->
+            <h3 style="color: var(--primary); font-size: 1.25rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-bottom: 1.5rem; margin-top: 2rem;">2. Personal Profile</h3>
+            
+            <div class="bento-grid" style="gap: 1.25rem;">
+                <div class="form-group col-6">
+                    <label class="form-label" for="full_name">Full Name *</label>
+                    <input type="text" class="form-control tactile-inset" id="full_name" name="full_name" required placeholder="Enter full name" value="{{ request.form.get('full_name', '') }}">
+                </div>
+                <div class="form-group col-3">
+                    <label class="form-label" for="gender">Gender *</label>
+                    <select class="form-control tactile-inset" id="gender" name="gender" required>
+                        <option value="">Select</option>
+                        <option value="Male" {% if request.form.get('gender') == 'Male' %}selected{% endif %}>Male</option>
+                        <option value="Female" {% if request.form.get('gender') == 'Female' %}selected{% endif %}>Female</option>
+                        <option value="Other" {% if request.form.get('gender') == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div class="form-group col-3">
+                    <label class="form-label" for="date_of_birth">Date of Birth *</label>
+                    <input type="date" class="form-control tactile-inset" id="date_of_birth" name="date_of_birth" required value="{{ request.form.get('date_of_birth', '') }}">
+                </div>
+                <div class="form-group col-6">
+                    <label class="form-label" for="phone">Phone Number *</label>
+                    <input type="tel" class="form-control tactile-inset" id="phone" name="phone" required pattern="[0-9]{10}" placeholder="10-digit number" value="{% if not clear_phone %}{{ request.form.get('phone', '') }}{% endif %}">
+                </div>
+                <div class="form-group col-6">
+                    <label class="form-label" for="aadhar_id">Aadhar ID *</label>
+                    <input type="text" class="form-control tactile-inset" id="aadhar_id" name="aadhar_id" placeholder="XXXX-XXXX-XXXX" maxlength="14" value="{% if not clear_aadhar %}{{ request.form.get('aadhar_id', '') }}{% endif %}">
+                </div>
+                <div class="form-group col-6">
+                    <label class="form-label" for="room_number">Desired Room Number *</label>
+                    <input type="text" class="form-control tactile-inset" id="room_number" name="room_number" required placeholder="e.g. 101, B-42" value="{% if not clear_room %}{{ request.form.get('room_number', '') }}{% endif %}">
+                </div>
+                <div class="form-group col-6">
+                    <label class="form-label" for="date_of_joining">Date of Joining *</label>
+                    <input type="date" class="form-control tactile-inset" id="date_of_joining" name="date_of_joining" required value="{{ request.form.get('date_of_joining', '') }}">
+                </div>
+            </div>
+
+            <!-- Segment 3: Address Details -->
+            <h3 style="color: var(--primary); font-size: 1.25rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-bottom: 1.5rem; margin-top: 2rem;">3. Address Details</h3>
+            
+            <div class="form-group">
+                <label class="form-label" for="permanent_address">Permanent Address *</label>
+                <textarea class="form-control tactile-inset" id="permanent_address" name="permanent_address" required placeholder="Flat/House No, Building, Street, Area" rows="2">{{ request.form.get('permanent_address', '') }}</textarea>
+            </div>
+            <div class="bento-grid" style="gap: 1.25rem;">
+                <div class="form-group col-4">
+                    <label class="form-label" for="city">City *</label>
+                    <input type="text" class="form-control tactile-inset" id="city" name="city" required placeholder="City" value="{{ request.form.get('city', '') }}">
+                </div>
+                <div class="form-group col-4">
+                    <label class="form-label" for="state">State *</label>
+                    <input type="text" class="form-control tactile-inset" id="state" name="state" required placeholder="State" value="{{ request.form.get('state', '') }}">
+                </div>
+                <div class="form-group col-4">
+                    <label class="form-label" for="pincode">Pincode *</label>
+                    <input type="text" class="form-control tactile-inset" id="pincode" name="pincode" required pattern="[0-9]{6}" placeholder="6-digit pincode" value="{{ request.form.get('pincode', '') }}">
+                </div>
+            </div>
+
+            <!-- Segment 4: Emergency Contacts & Photo -->
+            <h3 style="color: var(--primary); font-size: 1.25rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-bottom: 1.5rem; margin-top: 2rem;">4. Emergency Contacts & Photo</h3>
+            
+            <div class="bento-grid" style="gap: 1.25rem;">
+                <div class="form-group col-4">
+                    <label class="form-label" for="emergency_contact_name">Emergency Contact Name *</label>
+                    <input type="text" class="form-control tactile-inset" id="emergency_contact_name" name="emergency_contact_name" required placeholder="Contact Name" value="{{ request.form.get('emergency_contact_name', '') }}">
+                </div>
+                <div class="form-group col-4">
+                    <label class="form-label" for="emergency_contact_phone">Emergency Contact Phone *</label>
+                    <input type="tel" class="form-control tactile-inset" id="emergency_contact_phone" name="emergency_contact_phone" required pattern="[0-9]{10}" placeholder="10-digit number" value="{{ request.form.get('emergency_contact_phone', '') }}">
+                </div>
+                <div class="form-group col-4">
+                    <label class="form-label" for="emergency_contact_relation">Relationship *</label>
+                    <select class="form-control tactile-inset" id="emergency_contact_relation" name="emergency_contact_relation" required>
+                        <option value="">Select Relation</option>
+                        <option value="Father" {% if request.form.get('emergency_contact_relation') == 'Father' %}selected{% endif %}>Father</option>
+                        <option value="Mother" {% if request.form.get('emergency_contact_relation') == 'Mother' %}selected{% endif %}>Mother</option>
+                        <option value="Guardian" {% if request.form.get('emergency_contact_relation') == 'Guardian' %}selected{% endif %}>Guardian</option>
+                        <option value="Sibling" {% if request.form.get('emergency_contact_relation') == 'Sibling' %}selected{% endif %}>Sibling</option>
+                        <option value="Spouse" {% if request.form.get('emergency_contact_relation') == 'Spouse' %}selected{% endif %}>Spouse</option>
+                        <option value="Other" {% if request.form.get('emergency_contact_relation') == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                
+                <div class="form-group col-4">
+                    <label class="form-label" for="guardian_name">Guardian Name (Optional)</label>
+                    <input type="text" class="form-control tactile-inset" id="guardian_name" name="guardian_name" placeholder="Guardian Full Name" value="{{ request.form.get('guardian_name', '') }}">
+                </div>
+                <div class="form-group col-4">
+                    <label class="form-label" for="guardian_phone">Guardian Phone (Optional)</label>
+                    <input type="tel" class="form-control tactile-inset" id="guardian_phone" name="guardian_phone" pattern="[0-9]{10}" placeholder="10-digit number" value="{{ request.form.get('guardian_phone', '') }}">
+                </div>
+                <div class="form-group col-4">
+                    <label class="form-label" for="guardian_relation">Relation (Optional)</label>
+                    <select class="form-control tactile-inset" id="guardian_relation" name="guardian_relation">
+                        <option value="">Select Relation</option>
+                        <option value="Father" {% if request.form.get('guardian_relation') == 'Father' %}selected{% endif %}>Father</option>
+                        <option value="Mother" {% if request.form.get('guardian_relation') == 'Mother' %}selected{% endif %}>Mother</option>
+                        <option value="Guardian" {% if request.form.get('guardian_relation') == 'Guardian' %}selected{% endif %}>Guardian</option>
+                        <option value="Sibling" {% if request.form.get('guardian_relation') == 'Sibling' %}selected{% endif %}>Sibling</option>
+                        <option value="Other" {% if request.form.get('guardian_relation') == 'Other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group col-12">
+                    <label class="form-label" for="profile_photo">Profile Photo</label>
+                    <input type="file" class="form-control tactile-inset" id="profile_photo" name="profile_photo" accept=".jpg,.jpeg,.png" onchange="previewPhoto(event)">
+                    <small style="color: var(--text-muted);">Optional. Allowed: JPG, PNG. Max: 5MB.</small>
+                    
+                    <div id="photo-preview" style="display: none; margin-top: 15px;">
+                        <img id="preview-img" src="" alt="Photo Preview" style="max-width: 140px; border-radius: var(--radius-md); border: 2px solid var(--primary);">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div style="margin-top: 3rem;">
+                <button type="submit" class="btn btn-primary clay-btn" style="width: 100%; padding: 1rem; font-size: 1.1rem; border-radius: var(--radius-md);">
+                    🎯 Complete Resident Registration
+                </button>
+            </div>
+            
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <p style="color: var(--text-secondary);">
+                    Already registered? 
+                    <a href="{{ url_for('auth.login') }}" style="color: var(--primary); font-weight: 600;">Log in here</a>
+                </p>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Max date limit
+    document.getElementById('date_of_joining').max = new Date().toISOString().split('T')[0];
+
+    // Aadhar formatter
+    document.getElementById('aadhar_id').addEventListener('input', function(e) {
+        let value = e.target.value.replace(/[^0-9]/g, '');
+        if (value.length > 12) {
+            value = value.substring(0, 12);
+        }
+        if (value.length >= 8) {
+            value = value.substring(0, 4) + '-' + value.substring(4, 8) + '-' + value.substring(8, 12);
+        } else if (value.length >= 4) {
+            value = value.substring(0, 4) + '-' + value.substring(4, 8);
+        }
+        e.target.value = value;
+    });
+
+    // Preview uploaded photo
+    function previewPhoto(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.getElementById('photo-preview');
+                const img = document.getElementById('preview-img');
+                img.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Password matcher
+    document.getElementById('confirm_password').addEventListener('input', function() {
+        const password = document.getElementById('password').value;
+        if (password !== this.value) {
+            this.setCustomValidity('Passwords do not match');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+</script>
+{% endblock %}

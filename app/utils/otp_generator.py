@@ -4,7 +4,7 @@ OTP Generator and Validator Module
 Handles generation, validation, and management of One-Time Passwords
 """
 
-import random
+import secrets
 import string
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -12,7 +12,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 def generate_otp(length=6):
     """
-    Generate a random OTP code
+    Generate a random OTP code using a cryptographically secure random number generator.
 
     Args:
         length (int): Length of OTP to generate (default: 6 digits)
@@ -20,7 +20,7 @@ def generate_otp(length=6):
     Returns:
         str: Generated OTP code (numeric)
     """
-    return ''.join(random.choices(string.digits, k=length))
+    return ''.join(secrets.choice(string.digits) for _ in range(length))
 
 
 def hash_otp(otp_code):

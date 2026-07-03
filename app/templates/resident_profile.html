@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}{{ resident.full_name }} - Profile Dashboard{% endblock %}
+
+{% block content %}
+{% if is_public %}
+<!-- PUBLIC QR SCAN VIEW (Minimal/Secure profile info) -->
+<div style="display: flex; justify-content: center; align-items: center; min-height: 80vh;">
+    <div class="bento-card glass-liquid col-12" style="max-width: 600px; padding: 3rem; text-align: center;">
+        <div style="position: relative; display: inline-block; margin-bottom: 1.5rem;">
+            <img src="{{ resident.profile_image and '/static/images/' + resident.profile_image or '/static/images/default_profile.png' }}" 
+                 alt="{{ resident.full_name }}" 
+                 style="width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); box-shadow: 0 0 20px var(--primary-glow);"
+                 onerror="this.src='/static/images/default_profile.png'">
+        </div>
+        
+        <h2 style="font-size: 2.2rem; margin-bottom: 0.5rem;">{{ resident.full_name }}</h2>
+        <span class="badge badge-verified" style="margin-bottom: 2rem;">Verified Resident</span>
+        
+        <div class="bento-grid" style="text-align: left; gap: 1rem; margin-top: 1rem;">
+            <div class="bento-card glass-minimal col-6" style="padding: 1.25rem;">
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Hostel Allocation</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.1rem; font-weight: 700; color: var(--primary);">{{ resident.hostel.hostel_name }}</p>
+            </div>
+            
+            <div class="bento-card glass-minimal col-6" style="padding: 1.25rem;">
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Room Number</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.1rem; font-weight: 700; color: var(--accent);">Room {{ resident.room_number }}</p>
+            </div>
+            
+            <div class="bento-card glass-minimal col-12" style="padding: 1.25rem;">
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Emergency Contact</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.05rem; font-weight: 700;">{{ resident.emergency_contact_name }} ({{ resident.emergency_contact_relation }})</p>
+                <p style="margin: 0; font-size: 0.95rem; color: var(--text-secondary);">Phone: {{ resident.emergency_contact_phone }}</p>
+            </div>
+        </div>
+        
+        <div style="margin-top: 2.5rem;">
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Hostel Resident Verification System | Security Authenticated</p>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- PRIVATE RESIDENT DASHBOARD PANEL -->
+<div style="margin-top: 1rem; margin-bottom: 2.5rem;">
+    <h1 style="font-size: 2.2rem; margin-bottom: 0.25rem;">👋 Welcome Back, {{ resident.full_name }}!</h1>
+    <p style="color: var(--text-secondary); margin: 0;">Resident Portal Dashboard | Room {{ resident.room_number }}</p>
+</div>
+
+<div class="bento-grid">
+    <!-- Card 1: Profile Summary (Bento Col 8) -->
+    <div class="bento-card glass-minimal col-8" style="display: flex; gap: 2rem; align-items: center;">
+        <img src="{{ resident.profile_image and '/static/images/' + resident.profile_image or '/static/images/default_profile.png' }}" 
+             alt="{{ resident.full_name }}" 
+             style="width: 130px; height: 130px; border-radius: var(--radius-md); object-fit: cover; border: 2px solid var(--glass-border);"
+             onerror="this.src='/static/images/default_profile.png'">
+        <div>
+            <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem;">{{ resident.full_name }}</h2>
+            <p style="margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.95rem;">
+                📍 Allocations: <strong>{{ resident.hostel.hostel_name }}</strong>, Room <strong>{{ resident.room_number }}</strong>
+            </p>
+            <p style="margin-bottom: 0; color: var(--text-muted); font-size: 0.9rem;">
+                Joined: {{ resident.date_of_joining.strftime('%B %d, %Y') }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Card 2: Profile Identity QR (Bento Col 4) -->
+    <div class="bento-card glass-minimal col-4" style="text-align: center; display: flex; flex-direction: column; justify-content: space-between; align-items: center;">
+        <h4 style="margin: 0; color: var(--primary);">Permanent ID QR</h4>
+        <div style="background: white; padding: 0.5rem; border-radius: var(--radius-sm); margin: 0.5rem 0; box-shadow: 0 0 20px var(--primary-glow); border: 2px solid var(--primary);">
+            <img src="/static/qr/{{ resident.id }}.png" alt="ID QR" style="height: 100px; display: block;" onerror="this.src='/static/images/default_profile.png'">
+        </div>
+        <a href="/static/qr/{{ resident.id }}.png" download="resident_{{ resident.id }}_qr.png" class="btn btn-primary btn-sm" style="width: 100%;">
+            📥 Download QR ID
+        </a>
+    </div>
+
+    <!-- Card 3: Payments & Rent Management (Bento Col 6) -->
+    <div class="bento-card glass-minimal col-6" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <h3 style="color: var(--warning); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">💳 Rent Payment Gateway</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">Scan/Download your hostel owner's payment QR code to pay rent via UPI or mobile banking, then upload the receipt proof below.</p>
+            
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+                {% if resident.hostel.payment_qr_code %}
+                    <img src="{{ resident.hostel.payment_qr_code }}" alt="Hostel QR" style="max-height: 160px; border-radius: var(--radius-md); border: 2px solid var(--glass-border); padding: 5px; background: white;">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">Hostel Billing QR Code</p>
+                {% else %}
+                    <div style="height: 160px; border: 2px dashed var(--glass-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-weight: 500;">
+                        No UPI QR Configured by Owner
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div>
+            {% if current_month_paid %}
+                <div class="alert alert-success" style="margin: 0; text-align: center;">
+                    ✓ Current Month Rent Receipt Filed / Verified!
+                </div>
+            {% else %}
+                <div class="alert alert-warning" style="margin: 0; text-align: center; border-color: rgba(245, 158, 11, 0.4);">
+                    ⚠️ Outstanding Payment Due for This Month!
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Card 4: Submit Payment Proof Receipt (Bento Col 6) -->
+    <div class="bento-card glass-minimal col-6">
+        <h3 style="color: var(--primary); margin-bottom: 1.25rem;">💸 Upload Transaction Receipt</h3>
+        <form method="POST" action="{{ url_for('resident.submit_payment') }}" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="bento-grid" style="gap: 1rem; margin-bottom: 0;">
+                <div class="form-group col-6">
+                    <label class="form-label" for="amount">Rent Amount ($) *</label>
+                    <input type="number" step="0.01" class="form-control tactile-inset" id="amount" name="amount" required placeholder="0.00">
+                </div>
+                <div class="form-group col-6">
+                    <label class="form-label" for="payment_date">Date of Payment *</label>
+                    <input type="date" class="form-control tactile-inset" id="payment_date" name="payment_date" required>
+                </div>
+                <div class="form-group col-12">
+                    <label class="form-label" for="transaction_id">UPI / Transaction ID *</label>
+                    <input type="text" class="form-control tactile-inset" id="transaction_id" name="transaction_id" required placeholder="Enter Transaction Reference ID">
+                </div>
+                <div class="form-group col-12" style="margin-bottom: 1.5rem;">
+                    <label class="form-label" for="screenshot">Upload Screenshot / PDF Receipt *</label>
+                    <input type="file" class="form-control tactile-inset" id="screenshot" name="screenshot" accept=".jpg,.jpeg,.png,.pdf" required style="padding: 0.5rem;">
+                    <small style="color: var(--text-muted);">Allowed: JPG, PNG, PDF. Max: 5MB.</small>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-success tactile-outset" style="width: 100%;">🚀 Submit for Owner Verification</button>
+        </form>
+    </div>
+
+    <!-- Card 5: Profile Core Metadata (Bento Col 12) -->
+    <div class="bento-card glass-minimal col-12">
+        <h3 style="color: var(--primary); margin-bottom: 1.5rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">📋 Resident Identity Details</h3>
+        
+        <div class="bento-grid" style="gap: 1.5rem;">
+            <div class="col-4">
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Login Email</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.05rem; font-weight: 700;">{{ resident.user.email }}</p>
+            </div>
+            <div class="col-4">
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Phone Number</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.05rem; font-weight: 700;">{{ resident.phone_decrypted }}</p>
+            </div>
+            <div class="col-4">
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Aadhar ID (Masked)</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.05rem; font-weight: 700;">{{ resident.mask_aadhar() or 'Not Provided' }}</p>
+            </div>
+            
+            <div class="col-4">
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Guardian Name</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.05rem; font-weight: 700;">{{ resident.guardian_name or 'N/A' }} ({{ resident.guardian_relation or 'N/A' }})</p>
+            </div>
+            <div class="col-4">
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Guardian Phone</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.05rem; font-weight: 700;">{{ resident.guardian_phone or 'N/A' }}</p>
+            </div>
+            <div class="col-4">
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Date of Birth</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.05rem; font-weight: 700;">{{ resident.date_of_birth.strftime('%B %d, %Y') }}</p>
+            </div>
+
+            <div class="col-8">
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Permanent Address</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.05rem; font-weight: 700;">{{ resident.permanent_address_decrypted }}, {{ resident.city }}, {{ resident.state }} - {{ resident.pincode }}</p>
+            </div>
+            <div class="col-4">
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase;">Emergency Contact Relation</p>
+                <p style="margin: 0.25rem 0 0 0; font-size: 1.05rem; font-weight: 700;">{{ resident.emergency_contact_name }} ({{ resident.emergency_contact_relation }}) - {{ resident.emergency_contact_phone }}</p>
+            </div>
+        </div>
+        
+        <div style="margin-top: 2rem; border-top: 1px solid var(--glass-border); padding-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem;">
+            <a href="{{ url_for('settings.index') }}" class="btn btn-secondary btn-sm">⚙️ Security Settings</a>
+            <button onclick="window.print()" class="btn btn-secondary btn-sm">🖨️ Print Profile Sheet</button>
+        </div>
+    </div>
+
+    <!-- Card 6: Payment Transaction Logs (Bento Col 12) -->
+    <div class="bento-card glass-minimal col-12">
+        <h3 style="color: var(--primary); margin-bottom: 1rem;">📋 Billing & Transaction History</h3>
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Date Filed</th>
+                        <th>Rent Amount</th>
+                        <th>Payment Date</th>
+                        <th>Transaction Reference ID</th>
+                        <th>Receipt Document</th>
+                        <th>Verification Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in payments %}
+                    <tr>
+                        <td>{{ p.created_at.strftime('%b %d, %Y %I:%M %p') }}</td>
+                        <td><strong>${{ p.amount }}</strong></td>
+                        <td>{{ p.payment_date.strftime('%b %d, %Y') }}</td>
+                        <td><code>{{ p.transaction_id }}</code></td>
+                        <td>
+                            <a href="{{ p.screenshot_path }}" target="_blank" style="color: var(--primary); text-decoration: underline;">Open Receipt</a>
+                        </td>
+                        <td>
+                            {% if p.status == 'Verified' %}
+                                <span class="badge badge-verified">Verified</span>
+                            {% elif p.status == 'Pending' %}
+                                <span class="badge badge-pending">Pending Review</span>
+                            {% else %}
+                                <span class="badge badge-rejected" title="Verify receipt details again.">Rejected</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No transaction receipts filed yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

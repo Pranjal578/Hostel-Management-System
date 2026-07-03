@@ -152,7 +152,7 @@ curl -I https://your-domain/
 
 Before going live:
 
-- [ ] **Changed default admin credentials** (not "admin"/"admin123")
+- [ ] **Changed default admin credentials** (not "demo"/"demo")
 - [ ] **Generated strong SECRET_KEY** (use `manage.py generate-secret`)
 - [ ] **Database password is strong**
 - [ ] **Firewall is configured** (allow only 80/443)

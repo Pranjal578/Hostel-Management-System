@@ -112,8 +112,8 @@ Open browser → `http://localhost:5000`
 
 **Default Admin Login:**
 
-- Username: `admin`
-- Password: `admin123`
+- Username: `demo`
+- Password: `demo`
 
 ---
 
@@ -490,8 +490,8 @@ Check the README.md or create an issue on your repository.
 ```card
  Start Server:     python app.py
  Access URL:       <http://localhost:5000>
- Admin User:       admin
- Admin Pass:       admin123
+ Admin User:       demo
+ Admin Pass:       demo
  QR Location:      static/qr/
  Database:         database.db
  Docs:            README.md

@@ -20,8 +20,8 @@ class Config:
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB max file size
 
     # Admin credentials with defaults
-    ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
-    ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
+    ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME', 'demo')
+    ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'demo')
 
     # Session configuration
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
@@ -41,6 +41,10 @@ class Config:
     TWILIO_ACCOUNT_SID = os.environ.get('TWILIO_ACCOUNT_SID')
     TWILIO_AUTH_TOKEN = os.environ.get('TWILIO_AUTH_TOKEN')
     TWILIO_PHONE_NUMBER = os.environ.get('TWILIO_PHONE_NUMBER')
+
+    # Google OAuth 2.0 Credentials
+    GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+    GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
 
     # QR Code Configuration
     BASE_URL = os.environ.get('BASE_URL', 'http://127.0.0.1:5000')

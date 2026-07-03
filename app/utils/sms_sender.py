@@ -2,11 +2,12 @@
 SMS Sender Module
 
 Handles sending OTP via SMS using Twilio API
+Uses current_app to fetch Twilio credentials dynamically.
 """
 
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
-import os
+from flask import current_app
 
 
 def send_otp_sms(phone_number, otp_code, resident_name=None):
@@ -24,12 +25,10 @@ def send_otp_sms(phone_number, otp_code, resident_name=None):
             - (False, error_message) if failed
     """
     try:
-        from app import app
-
         # Check if Twilio is configured
-        account_sid = app.config.get('TWILIO_ACCOUNT_SID')
-        auth_token = app.config.get('TWILIO_AUTH_TOKEN')
-        from_phone = app.config.get('TWILIO_PHONE_NUMBER')
+        account_sid = current_app.config.get('TWILIO_ACCOUNT_SID')
+        auth_token = current_app.config.get('TWILIO_AUTH_TOKEN')
+        from_phone = current_app.config.get('TWILIO_PHONE_NUMBER')
 
         if not all([account_sid, auth_token, from_phone]):
             return False, "SMS service not configured. Please contact support."
@@ -38,11 +37,7 @@ def send_otp_sms(phone_number, otp_code, resident_name=None):
         client = Client(account_sid, auth_token)
 
         # Create message
-        message_text = f"""Your OTP for Hostel Management System login is: {otp_code}
-
-This code will expire in 10 minutes.
-
-If you didn't request this, please ignore this message."""
+        message_text = f"Your OTP for Hostel Management System login is: {otp_code}\n\nThis code will expire in 10 minutes.\n\nIf you didn't request this, please ignore this message."
 
         # Send SMS
         message = client.messages.create(
@@ -75,11 +70,9 @@ def send_test_sms(phone_number):
         tuple: (success: bool, message: str)
     """
     try:
-        from app import app
-
-        account_sid = app.config.get('TWILIO_ACCOUNT_SID')
-        auth_token = app.config.get('TWILIO_AUTH_TOKEN')
-        from_phone = app.config.get('TWILIO_PHONE_NUMBER')
+        account_sid = current_app.config.get('TWILIO_ACCOUNT_SID')
+        auth_token = current_app.config.get('TWILIO_AUTH_TOKEN')
+        from_phone = current_app.config.get('TWILIO_PHONE_NUMBER')
 
         if not all([account_sid, auth_token, from_phone]):
             return False, "SMS service not configured"
