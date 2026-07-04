@@ -7,11 +7,13 @@ from flask_wtf.csrf import CSRFProtect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from authlib.integrations.flask_client import OAuth
+from flask_migrate import Migrate
 
 # Global Extensions
 csrf = CSRFProtect()
 limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
 oauth = OAuth()
+migrate = Migrate()
 
 def create_app(config_name=None):
     """Application Factory to create and configure the Flask app"""
@@ -36,6 +38,7 @@ def create_app(config_name=None):
     csrf.init_app(app)
     limiter.init_app(app)
     oauth.init_app(app)
+    migrate.init_app(app, db)
     
     # Register Google OAuth client
     oauth.register(
@@ -63,6 +66,19 @@ def create_app(config_name=None):
 
     # Migrate old static payment paths to secure path in db
     with app.app_context():
+        # Run auto-upgrades for database migrations on start
+        if not app.config.get('TESTING'):
+            migrations_dir = os.path.join(os.path.dirname(app.root_path), 'migrations')
+            if os.path.exists(migrations_dir):
+                try:
+                    from flask_migrate import upgrade as db_upgrade
+                    db_upgrade()
+                    print("[OK] Database migrations upgraded/applied successfully.")
+                except Exception as e:
+                    print(f"[WARN] Migrations auto-upgrade failed: {e}. Falling back to default initialization.")
+            else:
+                print("[INFO] Migrations directory not found. Skipping auto-upgrade.")
+
         try:
             from app.models.db import Payment
             old_payments = Payment.query.filter(Payment.screenshot_path.like('/static/uploads/payments/%')).all()

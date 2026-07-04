@@ -2,12 +2,37 @@
 
 {% block title %}Dashboard - Hostel Management SaaS{% endblock %}
 
+{% block extra_css %}
+<style>
+    .hostel-card.active {
+        border-color: var(--primary) !important;
+        background: rgba(56, 189, 248, 0.08) !important;
+        box-shadow: 0 0 20px var(--primary-glow) !important;
+    }
+    .badge-none {
+        background: rgba(148, 163, 184, 0.12);
+        color: var(--text-secondary);
+        border: 1px solid rgba(148, 163, 184, 0.3);
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- SuperAdmin Dashboard View -->
 {% if session.get('user_role') == 'SuperAdmin' %}
 <div class="hero">
     <h1>👑 System Director Control</h1>
     <p>Monitor multi-hostel allocation, register tenant owners, and manage platform capacity.</p>
+</div>
+
+<!-- Real-Time Global Search Bar -->
+<div class="bento-grid" style="margin-bottom: 1.5rem;">
+    <div class="bento-card glass-minimal col-12" style="padding: 1.25rem 2rem;">
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <span style="font-size: 1.5rem; filter: drop-shadow(0 0 5px var(--primary-glow));">🔍</span>
+            <input type="text" id="global-resident-search" class="form-control" placeholder="Search residents by name, room, or hostel across the platform (type to search)..." style="font-size: 1.1rem; padding: 0.8rem 1.5rem; border-color: rgba(255,255,255,0.06);">
+        </div>
+    </div>
 </div>
 
 <div class="bento-grid">
@@ -25,8 +50,70 @@
         <p style="font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.85rem;">Platform Capacity</p>
     </div>
 
+    <!-- Multi-Hostel Overview Cards -->
+    <div class="col-12" style="margin-top: 1.5rem; margin-bottom: -0.5rem;">
+        <h3 style="color: var(--primary); display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0;">🏢 Multi-Hostel Global Overview <span style="font-size: 0.85rem; font-weight: normal; color: var(--text-secondary); margin-left: 0.5rem;">(Click a card to filter residents below)</span></h3>
+    </div>
+    
+    <div class="col-12 bento-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; padding: 0; border: none; box-shadow: none; background: none; backdrop-filter: none; -webkit-backdrop-filter: none;">
+        {% for hostel in hostels %}
+        {% set pct = ((hostel.residents|length / hostel.total_capacity * 100)|int) if hostel.total_capacity > 0 else 0 %}
+        <div class="bento-card glass-minimal hostel-card tactile-outset" id="hostel-card-{{ hostel.id }}" data-hostel-id="{{ hostel.id }}" onclick="selectHostel({{ hostel.id }})" style="cursor: pointer; padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between; min-height: 180px;">
+            <div>
+                <h4 style="margin-bottom: 0.25rem; font-size: 1.2rem; color: var(--text-primary);">{{ hostel.hostel_name }}</h4>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📍 {{ hostel.location }}</p>
+            </div>
+            <div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.4rem;">
+                    <span style="color: var(--text-secondary);">Occupancy</span>
+                    <span style="font-weight: 700; color: {% if pct > 90 %}var(--danger){% elif pct > 75 %}var(--warning){% else %}var(--success){% endif %};">{{ pct }}%</span>
+                </div>
+                <div style="width: 100%; height: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 3px; overflow: hidden; margin-bottom: 1rem;">
+                    <div style="width: {{ pct }}%; height: 100%; background: linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%);"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;">{{ hostel.residents|length }} / {{ hostel.total_capacity }} Beds</span>
+                    {% if hostel.pending_payments_count > 0 %}
+                    <span class="badge badge-pending" style="font-size: 0.75rem; padding: 0.2rem 0.6rem;">{{ hostel.pending_payments_count }} Pending</span>
+                    {% else %}
+                    <span class="badge badge-verified" style="font-size: 0.75rem; padding: 0.2rem 0.6rem; animation: none;">0 Pending</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Drill-down Resident Table -->
+    <div class="bento-card glass-minimal col-12" id="resident-listing-tile" style="margin-top: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <h3 style="color: var(--primary); margin: 0;" id="resident-table-title">Platform Residents Registry</h3>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <span id="resident-count-badge" class="badge badge-verified" style="animation: none; font-size: 0.8rem; cursor: pointer;" onclick="clearHostelSelection()">All Hostels (Click to Reset)</span>
+            </div>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="custom-table" id="global-residents-table">
+                <thead>
+                    <tr>
+                        <th>Hostel</th>
+                        <th>Room</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Payment Status</th>
+                    </tr>
+                </thead>
+                <tbody id="global-residents-tbody">
+                    <!-- Dynamically populated via JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
     <!-- Create Owner Portal -->
-    <div class="bento-card glass-minimal col-6">
+    <div class="bento-card glass-minimal col-6" style="margin-top: 1rem;">
         <h3 style="color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">👤 Register Hostel Owner</h3>
         <form method="POST" action="{{ url_for('admin.create_owner') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -47,7 +134,7 @@
     </div>
 
     <!-- Create Hostel Portal -->
-    <div class="bento-card glass-minimal col-6">
+    <div class="bento-card glass-minimal col-6" style="margin-top: 1rem;">
         <h3 style="color: var(--accent); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">🏢 Create New Hostel</h3>
         <form method="POST" action="{{ url_for('admin.create_hostel') }}">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -77,7 +164,7 @@
     </div>
 
     <!-- Hostels Catalog -->
-    <div class="bento-card glass-minimal col-12">
+    <div class="bento-card glass-minimal col-12" style="margin-top: 1rem;">
         <h3 style="color: var(--primary); margin-bottom: 1rem;">🏢 Active Hostels Catalog</h3>
         <div class="table-responsive">
             <table class="custom-table">
@@ -118,6 +205,26 @@
         </div>
     </div>
 </div>
+
+<script id="residents-data" type="application/json">
+  {
+    {% for hostel in hostels %}
+      "{{ hostel.id }}": [
+        {% for r in hostel.residents %}
+          {
+            "id": {{ r.id }},
+            "full_name": "{{ r.full_name|escape }}",
+            "room_number": "{{ r.room_number|escape }}",
+            "email": "{{ r.user.email|escape }}",
+            "phone": "{{ r.phone_decrypted|escape }}",
+            "payment_status": "{{ r.payment_status|escape }}",
+            "hostel_name": "{{ hostel.hostel_name|escape }}"
+          }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ]{% if not loop.last %},{% endif %}
+    {% endfor %}
+  }
+</script>
 
 <!-- HostelOwner Dashboard View -->
 {% elif session.get('user_role') == 'HostelOwner' %}
@@ -462,4 +569,120 @@
             .catch(err => console.error("API error", err));
     }
 </script>
+
+{% if session.get('user_role') == 'SuperAdmin' %}
+<script>
+    let residentsData = {};
+    let selectedHostelId = null;
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const rawData = document.getElementById('residents-data');
+        if (rawData) {
+            residentsData = JSON.parse(rawData.textContent);
+        }
+        loadAllResidents();
+        
+        // Wire up live search input
+        const searchInput = document.getElementById('global-resident-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                const query = this.value.trim();
+                if (query.length === 0) {
+                    if (selectedHostelId !== null) {
+                        selectHostel(selectedHostelId);
+                    } else {
+                        loadAllResidents();
+                    }
+                    return;
+                }
+                
+                // Fetch API search
+                fetch(`/api/residents/search?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // De-activate hostel cards
+                        document.querySelectorAll('.hostel-card').forEach(c => c.classList.remove('active'));
+                        
+                        renderResidents(data, "Search Results", `Query: "${query}"`);
+                    })
+                    .catch(err => console.error("Search API error", err));
+            });
+        }
+    });
+
+    function renderResidents(residents, title, badgeText) {
+        const tbody = document.getElementById('global-residents-tbody');
+        const tableTitle = document.getElementById('resident-table-title');
+        const countBadge = document.getElementById('resident-count-badge');
+        
+        if (tableTitle) tableTitle.innerText = title;
+        if (countBadge) countBadge.innerText = badgeText;
+        if (!tbody) return;
+        
+        tbody.innerHTML = '';
+        
+        if (residents.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No residents found matching criteria.</td>
+                </tr>
+            `;
+            return;
+        }
+        
+        residents.forEach(r => {
+            let badgeClass = 'badge-none';
+            if (r.payment_status === 'Verified') badgeClass = 'badge-verified';
+            else if (r.payment_status === 'Pending') badgeClass = 'badge-pending';
+            else if (r.payment_status === 'Rejected') badgeClass = 'badge-rejected';
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td><strong>${r.hostel_name}</strong></td>
+                    <td>Room ${r.room_number}</td>
+                    <td>${r.full_name}</td>
+                    <td>${r.email}</td>
+                    <td>${r.phone || 'N/A'}</td>
+                    <td><span class="badge ${badgeClass}">${r.payment_status}</span></td>
+                </tr>
+            `;
+        });
+    }
+
+    function selectHostel(hostelId) {
+        selectedHostelId = hostelId;
+        
+        // Clear search input visually without trigger
+        const searchInput = document.getElementById('global-resident-search');
+        if (searchInput) searchInput.value = '';
+        
+        // Active visual state
+        document.querySelectorAll('.hostel-card').forEach(c => c.classList.remove('active'));
+        const card = document.getElementById(`hostel-card-${hostelId}`);
+        if (card) card.classList.add('active');
+        
+        const residents = residentsData[hostelId] || [];
+        const hostelName = card ? card.querySelector('h4').innerText : "Selected Hostel";
+        renderResidents(residents, `${hostelName} Residents`, `${residents.length} Allocated`);
+    }
+
+    function loadAllResidents() {
+        selectedHostelId = null;
+        document.querySelectorAll('.hostel-card').forEach(c => c.classList.remove('active'));
+        
+        let allList = [];
+        Object.keys(residentsData).forEach(hostelId => {
+            allList = allList.concat(residentsData[hostelId]);
+        });
+        
+        renderResidents(allList, "Platform Residents Registry", "All Hostels");
+    }
+
+    function clearHostelSelection() {
+        loadAllResidents();
+        const searchInput = document.getElementById('global-resident-search');
+        if (searchInput) searchInput.value = '';
+    }
+</script>
+{% endif %}
 {% endblock %}

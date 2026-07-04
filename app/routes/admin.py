@@ -8,7 +8,9 @@ admin_bp = Blueprint('admin', __name__)
 @role_required('SuperAdmin')
 def dashboard():
     """SuperAdmin central control dashboard"""
-    hostels = Hostel.query.all()
+    hostels = Hostel.query.options(
+        db.joinedload(Hostel.residents).joinedload(Resident.payments)
+    ).all()
     owners = User.query.filter_by(role='HostelOwner').all()
     residents_count = Resident.query.count()
     

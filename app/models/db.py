@@ -82,6 +82,16 @@ class Hostel(db.Model):
     residents = db.relationship('Resident', backref='hostel', lazy=True)
     payments = db.relationship('Payment', backref='hostel', lazy=True)
     
+    @property
+    def pending_payments_count(self):
+        """Returns count of pending payments in this hostel. Efficient if payments are preloaded."""
+        count = 0
+        for r in self.residents:
+            for p in r.payments:
+                if p.status == 'Pending':
+                    count += 1
+        return count
+
     def __repr__(self):
         return f'<Hostel {self.hostel_name} - Owner {self.owner_id}>'
 
@@ -162,6 +172,14 @@ class Resident(db.Model):
     @aadhar_id_decrypted.setter
     def aadhar_id_decrypted(self, value):
         self.aadhar_id = encrypt_field(value)
+        
+    @property
+    def payment_status(self):
+        """Returns the status of the latest payment, or 'None' if no payments exist. Efficient when payments are preloaded."""
+        if not self.payments:
+            return 'None'
+        sorted_payments = sorted(self.payments, key=lambda p: p.created_at, reverse=True)
+        return sorted_payments[0].status
         
     def mask_aadhar(self):
         """Return masked aadhar: XXXX-XXXX-9012"""

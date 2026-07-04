@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, session
+from flask import Blueprint, jsonify, session, request
 from app.models.db import db, Resident, Hostel, Payment, User
 from app.routes.auth import role_required
 
@@ -53,3 +53,33 @@ def get_resident_details(resident_id):
     }
     
     return jsonify(data)
+
+
+@api_bp.route('/residents/search', methods=['GET'])
+@role_required('SuperAdmin')
+def search_residents_globally():
+    """Real-time global search for residents across all hostels"""
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify([])
+        
+    residents = Resident.query.join(Hostel).filter(
+        (Resident.full_name.ilike(f'%{query}%')) |
+        (Resident.room_number.ilike(f'%{query}%')) |
+        (Hostel.hostel_name.ilike(f'%{query}%'))
+    ).options(db.joinedload(Resident.payments)).limit(50).all()
+    
+    results = []
+    for r in residents:
+        results.append({
+            'id': r.id,
+            'full_name': r.full_name,
+            'room_number': r.room_number,
+            'hostel_name': r.hostel.hostel_name,
+            'hostel_id': r.hostel_id,
+            'email': r.user.email,
+            'payment_status': r.payment_status
+        })
+        
+    return jsonify(results)
+

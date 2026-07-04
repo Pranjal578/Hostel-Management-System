@@ -28,15 +28,21 @@ app = create_app()
 
 
 def init_db():
-    """Initialize database and create tables"""
+    """Initialize database and create tables using migrations"""
     print("Initializing database...")
 
     # Ensure instance directory exists
     Path(app.instance_path).mkdir(exist_ok=True)
 
     with app.app_context():
-        db.create_all()
-        print("[OK] Database tables created successfully")
+        try:
+            from flask_migrate import upgrade as db_upgrade
+            db_upgrade()
+            print("[OK] Database tables created/upgraded via migrations successfully")
+        except Exception as e:
+            print(f"[WARN] Migrations upgrade failed: {e}. Falling back to create_all().")
+            db.create_all()
+            print("[OK] Database tables created via fallback successfully")
 
 
 def create_admin():

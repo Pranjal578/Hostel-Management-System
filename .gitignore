@@ -30,13 +30,14 @@ venv/
 ENV/
 env/
 .venv/
+.env/
 pip-selfcheck.json
 
 # 3. SQLite Databases & Local Storage
-instance/
-.webassets-cache
+instance/database.db
+instance/*.db
 *.db
-database.db
+.webassets-cache
 
 # 4. IDE / Project Settings & Workspace Configs
 .vscode/
@@ -60,9 +61,10 @@ app/static/images/resident_*.png
 app/static/images/resident_*.jpg
 app/static/images/resident_*.jpeg
 
-# Preserve directory existence in VCS
+# Preserve directory existence in version control
 !app/static/qr/.gitkeep
 !app/static/images/.gitkeep
+!instance/.gitkeep
 
 # 7. Environment Variables & Secrets
 .env
