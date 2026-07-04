@@ -5,6 +5,11 @@
    ========================================================================== */
 
 :root {
+    /* Responsive glassmorphic variables */
+    --glass-blur: 6px;
+    --glass-blur-liquid: 8px;
+    --glass-bg-card: rgba(15, 23, 42, 0.65);
+
     /* Color Palette - HSL Tailored */
     --bg-main: #090d16;
     --bg-secondary: #0f172a;
@@ -46,18 +51,18 @@
 
 /* 1. Minimalist Glassmorphism (Default dashboard widgets/Bento grid items) */
 .glass-minimal {
-    background: rgba(15, 23, 42, 0.45) !important;
-    backdrop-filter: blur(12px) !important;
-    -webkit-backdrop-filter: blur(12px) !important;
+    background: var(--glass-bg-card) !important;
+    backdrop-filter: blur(var(--glass-blur)) !important;
+    -webkit-backdrop-filter: blur(var(--glass-blur)) !important;
     border: 1px solid rgba(255, 255, 255, 0.05) !important;
     box-shadow: var(--shadow-md) !important;
 }
 
 /* 2. Liquid Glass / Spatial UI (High refraction for profile cards/dialogs) */
 .glass-liquid {
-    background: rgba(255, 255, 255, 0.03) !important;
-    backdrop-filter: blur(24px) !important;
-    -webkit-backdrop-filter: blur(24px) !important;
+    background: rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(var(--glass-blur-liquid)) !important;
+    -webkit-backdrop-filter: blur(var(--glass-blur-liquid)) !important;
     border: 1px solid rgba(255, 255, 255, 0.12) !important;
     box-shadow: 
         0 25px 50px -12px rgba(0, 0, 0, 0.6),
@@ -185,9 +190,9 @@ a:hover {
 
 /* ========== STICKY GLASS NAVBAR ========== */
 .navbar {
-    background: rgba(9, 13, 22, 0.65);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    background: rgba(9, 13, 22, 0.75);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
     border-bottom: 1px solid var(--glass-border);
     position: sticky;
     top: 0;
@@ -313,8 +318,8 @@ a:hover {
 /* ========== GLASSMORPHIC BENTO CARDS & GRIDS ========== */
 .bento-grid {
     display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 1.5rem;
+    grid-template-columns: 1fr;
+    gap: 1rem;
     margin-bottom: 2rem;
 }
 
@@ -350,12 +355,28 @@ a:hover {
         0 0 30px -5px var(--primary-glow);
 }
 
-/* Bento Sizing Utilities */
-.col-12 { grid-column: span 12; }
-.col-8 { grid-column: span 8; }
-.col-6 { grid-column: span 6; }
-.col-4 { grid-column: span 4; }
-.col-3 { grid-column: span 3; }
+/* Bento Sizing Utilities - Mobile First (Stacked by default) */
+.col-12, .col-8, .col-6, .col-4, .col-3 {
+    grid-column: span 1 !important;
+}
+
+/* Custom Profile Layout Card */
+.flex-profile-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: center;
+    text-align: center;
+}
+
+@media (min-width: 768px) {
+    .flex-profile-card {
+        flex-direction: row;
+        gap: 2rem;
+        text-align: left;
+        align-items: center;
+    }
+}
 
 /* ========== FORMS & INPUTS ========== */
 .form-group {
@@ -683,13 +704,88 @@ a:hover {
 }
 
 /* ========== RESPONSIVE DESIGN ========== */
-@media (max-width: 992px) {
+
+/* Mobile-Specific Style Fixes / Adjustments (Max 768px) */
+@media (max-width: 768px) {
+    :root {
+        --transition: all 0.25s ease !important;
+    }
+    
+    .navbar-menu {
+        display: none;
+    }
+    
+    .menu-toggle {
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        font-size: 1.5rem;
+        background: none;
+        border: none;
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+    
+    .hero h1 {
+        font-size: 2.5rem;
+    }
+    
+    /* Ensure all touch targets are at least 44px high on mobile */
+    .btn, 
+    .form-control, 
+    .settings-nav-item, 
+    .navbar-brand, 
+    .navbar-menu a {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
+    
+    .form-control {
+        display: block; /* Maintain block behavior for inputs */
+    }
+    
+    .btn {
+        justify-content: center;
+    }
+}
+
+/* Tablet Breakpoint (min-width: 768px) */
+@media (min-width: 768px) {
     .bento-grid {
-        gap: 1rem;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1.25rem;
     }
-    .col-8, .col-4, .col-6, .col-3 {
-        grid-column: span 12;
+    .col-3 { grid-column: span 6 !important; }
+    .col-4 { grid-column: span 6 !important; }
+    .col-6 { grid-column: span 12 !important; }
+    .col-8 { grid-column: span 12 !important; }
+    .col-12 { grid-column: span 12 !important; }
+}
+
+/* Laptop/Desktop Breakpoint (min-width: 1024px) */
+@media (min-width: 1024px) {
+    :root {
+        --glass-blur: 16px;
+        --glass-blur-liquid: 24px;
+        --glass-bg-card: rgba(15, 23, 42, 0.45);
     }
+    
+    .bento-grid {
+        gap: 1.5rem;
+    }
+    
+    .col-3 { grid-column: span 3 !important; }
+    .col-4 { grid-column: span 4 !important; }
+    .col-6 { grid-column: span 6 !important; }
+    .col-8 { grid-column: span 8 !important; }
+    .col-12 { grid-column: span 12 !important; }
+}
+
+/* Settings Container responsiveness */
+@media (max-width: 992px) {
     .settings-container {
         flex-direction: column;
     }
@@ -700,17 +796,23 @@ a:hover {
         flex-direction: row;
         overflow-x: auto;
         padding-bottom: 0.5rem;
+        gap: 0.5rem;
+    }
+    .settings-nav-item {
+        white-space: nowrap;
     }
 }
 
-@media (max-width: 768px) {
-    .navbar-menu {
-        display: none;
+/* Touchscreens: Suppress hover scales/translates to avoid sticky tap states */
+@media (hover: none) {
+    .bento-card:hover {
+        transform: none !important;
+        box-shadow: var(--shadow-md) !important;
+        border-color: var(--glass-border) !important;
     }
-    .menu-toggle {
-        display: block;
-    }
-    .hero h1 {
-        font-size: 2.5rem;
+    .btn:hover, 
+    .settings-nav-item:hover, 
+    .navbar-menu a:hover {
+        transform: none !important;
     }
 }

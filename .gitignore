@@ -1,4 +1,8 @@
-# Python Compile Caches
+# =========================================================================
+# Hostel Resident Management SaaS - Git Exclusions Config
+# =========================================================================
+
+# 1. Python Cache & Compilation Logs
 __pycache__/
 *.py[cod]
 *$py.class
@@ -19,21 +23,22 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Virtual Environment
+# 2. Virtual Environments
 venv/
 ENV/
 env/
 .venv/
 pip-selfcheck.json
 
-# Flask / Database Files
+# 3. SQLite Databases & Local Storage
 instance/
 .webassets-cache
 *.db
 database.db
 
-# IDEs and Editors
+# 4. IDE / Project Settings & Workspace Configs
 .vscode/
 .idea/
 *.swp
@@ -43,27 +48,23 @@ database.db
 .pydevproject
 .settings/
 
-# OS-generated files
+# 5. OS-Generated Files
 .DS_Store
 Thumbs.db
 ehthumbs.db
 desktop.ini
 
-# Project-specific Media Files and Assets
-static/qr/*.png
-static/images/resident_*.png
-static/images/resident_*.jpg
-static/images/resident_*.jpeg
-!static/qr/.gitkeep
-!static/images/.gitkeep
+# 6. Local Dynamic Resident Media Assets (Ignore generated QRs and Profile Pictures)
+app/static/qr/*.png
+app/static/images/resident_*.png
+app/static/images/resident_*.jpg
+app/static/images/resident_*.jpeg
 
-# Logs and Debug
-*.log
-logs/
-gunicorn.log
-pip-log.txt
+# Preserve directory existence in VCS
+!app/static/qr/.gitkeep
+!app/static/images/.gitkeep
 
-# Environment variables & secrets
+# 7. Environment Variables & Secrets
 .env
 .env.local
 .env.*.local
@@ -71,8 +72,7 @@ pip-log.txt
 .env.staging
 .env.development
 
-# Temporary / Backup Files
+# 8. Temporary & Backup Files
 *.tmp
 *.temp
 *.bak
-*.swp

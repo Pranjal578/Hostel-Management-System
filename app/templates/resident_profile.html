@@ -50,7 +50,7 @@
 
 <div class="bento-grid">
     <!-- Card 1: Profile Summary (Bento Col 8) -->
-    <div class="bento-card glass-minimal col-8" style="display: flex; gap: 2rem; align-items: center;">
+    <div class="bento-card glass-minimal col-8 flex-profile-card">
         <img src="{{ resident.profile_image and '/static/images/' + resident.profile_image or '/static/images/default_profile.png' }}" 
              alt="{{ resident.full_name }}" 
              style="width: 130px; height: 130px; border-radius: var(--radius-md); object-fit: cover; border: 2px solid var(--glass-border);"
