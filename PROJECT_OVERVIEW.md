@@ -281,7 +281,7 @@ python app.py
 
 ```bash
 pip install gunicorn
-gunicorn -w 4 app:app
+gunicorn -w 4 wsgi:app
 ```
 
 ### 3. Cloud Platforms
