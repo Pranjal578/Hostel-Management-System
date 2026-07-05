@@ -211,7 +211,7 @@
                         const statusClass = p.status === 'Verified' ? 'badge-verified' : (p.status === 'Pending' ? 'badge-pending' : 'badge-rejected');
                         paymentDiv.innerHTML += `
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; padding:0.5rem; background:rgba(255,255,255,0.02); border-radius:var(--radius-sm);">
-                                <span>$${p.amount} (${p.payment_date})</span>
+                                <span>₹${p.amount} (${p.payment_date})</span>
                                 <span class="badge ${statusClass}">${p.status}</span>
                             </div>
                         `;

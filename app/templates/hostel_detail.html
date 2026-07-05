@@ -28,13 +28,19 @@
                 <div class="col-6">
                     <span style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; font-weight: 600;">Rent Price</span>
                     <p style="font-size: 1.3rem; font-weight: 700; margin: 0.25rem 0 0 0;">
-                        ${{ hostel.rent or '0.00' }} / month
+                        ₹{{ hostel.rent or '0.00' }} / month
                     </p>
                 </div>
                 <div class="col-6">
                     <span style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; font-weight: 600;">Electricity Bill Est.</span>
                     <p style="font-size: 1.3rem; font-weight: 700; margin: 0.25rem 0 0 0;">
-                        ${{ hostel.electricity_bill or '0.00' }} / month
+                        ₹{{ hostel.electricity_bill or '0.00' }} / month
+                    </p>
+                </div>
+                <div class="col-12" style="border-top: 1px dashed var(--glass-border); padding-top: 1.25rem; margin-top: 0.5rem;">
+                    <span style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; font-weight: 600;">Hostel Owner / Manager</span>
+                    <p style="font-size: 1.15rem; font-weight: 600; color: var(--text-primary); margin: 0.25rem 0 0 0; display: flex; align-items: center; gap: 0.5rem;">
+                        👤 {{ hostel.owner.email }}
                     </p>
                 </div>
             </div>

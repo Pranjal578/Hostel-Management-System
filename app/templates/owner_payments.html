@@ -33,11 +33,11 @@
                             <strong>{{ p.resident.full_name }}</strong><br>
                             <span style="font-size:0.8rem; color:var(--text-muted);">Room {{ p.resident.room_number }}</span>
                         </td>
-                        <td><strong>${{ p.amount }}</strong></td>
+                        <td><strong>₹{{ p.amount }}</strong></td>
                         <td>{{ p.payment_date.strftime('%b %d, %Y') }}</td>
                         <td><code>{{ p.transaction_id }}</code></td>
                         <td>
-                            <button class="btn btn-secondary btn-sm tactile-outset" onclick="openPaymentReceipt('{{ p.screenshot_path }}', '{{ p.resident.full_name|e }}', '${{ p.amount }}')">👁️ View Receipt</button>
+                            <button class="btn btn-secondary btn-sm tactile-outset" onclick="openPaymentReceipt('{{ p.screenshot_path }}', '{{ p.resident.full_name|e }}', '₹{{ p.amount }}')">👁️ View Receipt</button>
                         </td>
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
@@ -83,11 +83,11 @@
                             <strong>{{ p.resident.full_name }}</strong><br>
                             <span style="font-size:0.8rem; color:var(--text-muted);">Room {{ p.resident.room_number }}</span>
                         </td>
-                        <td><strong>${{ p.amount }}</strong></td>
+                        <td><strong>₹{{ p.amount }}</strong></td>
                         <td>{{ p.payment_date.strftime('%b %d, %Y') }}</td>
                         <td><code>{{ p.transaction_id }}</code></td>
                         <td>
-                            <button class="btn btn-secondary btn-sm tactile-outset" onclick="openPaymentReceipt('{{ p.screenshot_path }}', '{{ p.resident.full_name|e }}', '${{ p.amount }}')">Open</button>
+                            <button class="btn btn-secondary btn-sm tactile-outset" onclick="openPaymentReceipt('{{ p.screenshot_path }}', '{{ p.resident.full_name|e }}', '₹{{ p.amount }}')">Open</button>
                         </td>
                         <td>
                             {% if p.status == 'Verified' %}

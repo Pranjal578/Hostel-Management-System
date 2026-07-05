@@ -61,8 +61,8 @@ def create_hostel():
     name = request.form.get('hostel_name', '').strip()
     location = request.form.get('location', '').strip()
     capacity = int(request.form.get('total_capacity', 100))
-    rent = float(request.form.get('rent', 0.0) or 0.0)
-    electricity_bill = float(request.form.get('electricity_bill', 0.0) or 0.0)
+    rent = 0.0
+    electricity_bill = 0.0
 
     # Facilities: collect from multi-select or text field
     facilities_list = request.form.getlist('facilities')
@@ -244,6 +244,36 @@ def upload_payment_qr(hostel_id):
         db.session.rollback()
         flash(f'Failed to upload QR code: {str(e)}', 'danger')
 
+    return redirect(url_for('owner.hostels_list'))
+
+
+@owner_bp.route('/hostel/update-pricing/<int:hostel_id>', methods=['POST'])
+@role_required('HostelOwner')
+def update_hostel_pricing(hostel_id):
+    """Update a hostel's rent and electricity bill settings individually"""
+    owner_id = session['user_id']
+    hostel = Hostel.query.filter_by(id=hostel_id, owner_id=owner_id).first_or_404()
+    
+    rent = request.form.get('rent')
+    electricity_bill = request.form.get('electricity_bill')
+    
+    if rent is not None:
+        try:
+            hostel.rent = float(rent)
+        except ValueError:
+            flash('Invalid rent amount.', 'warning')
+            return redirect(url_for('owner.hostels_list'))
+            
+    if electricity_bill is not None:
+        try:
+            hostel.electricity_bill = float(electricity_bill)
+        except ValueError:
+            flash('Invalid electricity bill amount.', 'warning')
+            return redirect(url_for('owner.hostels_list'))
+            
+    db.session.commit()
+    log_security_action(owner_id, f"Updated pricing for hostel '{hostel.hostel_name}': Rent={hostel.rent}, Electricity={hostel.electricity_bill}")
+    flash(f"Pricing settings for '{hostel.hostel_name}' updated successfully!", 'success')
     return redirect(url_for('owner.hostels_list'))
 
 

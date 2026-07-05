@@ -94,8 +94,8 @@ def create_hostel():
     location = request.form.get('location', '').strip()
     capacity = int(request.form.get('total_capacity', 100))
     owner_id = request.form.get('owner_id')
-    rent = float(request.form.get('rent', 0.0) or 0.0)
-    electricity_bill = float(request.form.get('electricity_bill', 0.0) or 0.0)
+    rent = 0.0
+    electricity_bill = 0.0
 
     # Facilities: collect from multi-select or text field
     facilities_list = request.form.getlist('facilities')
