@@ -2,8 +2,17 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.utils.encryption import encrypt_field, decrypt_field
+from sqlalchemy import MetaData
 
-db = SQLAlchemy()
+naming_convention = {
+    "ix": 'ix_%(column_0_label)s',
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s"
+}
+
+db = SQLAlchemy(metadata=MetaData(naming_convention=naming_convention))
 
 class User(db.Model):
     """Core credentials model for all system users (SuperAdmin, HostelOwner, Resident)"""
