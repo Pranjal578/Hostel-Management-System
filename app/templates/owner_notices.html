@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Notices Broadcast - Owner Portal{% endblock %}
+
+{% block content %}
+<div style="margin-top: 1rem; margin-bottom: 2rem;">
+    <h1 style="font-size: 2.2rem; margin-bottom: 0.25rem;">📢 Notices & Announcements Broadcaster</h1>
+    <p style="color: var(--text-secondary); margin: 0;">Publish notices to residents of your hostels with email notifications.</p>
+</div>
+
+<div class="bento-grid">
+    <!-- Broadcast Notice Form -->
+    <div class="bento-card glass-minimal col-5">
+        <h3 style="color: var(--accent); margin-bottom: 1.5rem;">📣 Broadcast New Notice</h3>
+        <form method="POST" action="{{ url_for('owner.send_notice') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="form-group">
+                <label class="form-label" for="hostel_id">Select Hostel *</label>
+                <select class="form-control tactile-inset" id="hostel_id" name="hostel_id" required>
+                    <option value="">-- Choose Hostel --</option>
+                    {% for h in hostels %}
+                        <option value="{{ h.id }}">{{ h.hostel_name }} [{{ h.hostel_code }}]</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="notice_title">Notice Title *</label>
+                <input type="text" class="form-control tactile-inset" id="notice_title" name="notice_title" required placeholder="e.g. Scheduled Power Cut / Maintenance">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 2rem;">
+                <label class="form-label" for="notice_message">Message Description *</label>
+                <textarea class="form-control tactile-inset" id="notice_message" name="notice_message" required rows="5" placeholder="Enter notice description here..."></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-secondary clay-btn" style="width: 100%;">Broadcast Notice Broadcast</button>
+        </form>
+    </div>
+
+    <!-- Active Broadcasts History -->
+    <div class="bento-card glass-minimal col-7">
+        <h3 style="color: var(--primary); margin-bottom: 1.5rem;">📋 Published Notices History</h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 1.25rem; max-height: 550px; overflow-y: auto; padding-right: 0.5rem;">
+            {% for notice in notices %}
+            <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.25rem; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <strong style="font-size: 1.1rem; color: var(--text-primary);">{{ notice.title }}</strong><br>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">🏢 {{ notice.hostel.hostel_name }} | 📅 {{ notice.created_at.strftime('%b %d, %Y %I:%M %p') }}</span>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('owner.delete_notice', notice_id=notice.id) }}" onsubmit="return confirm('Delete this notice?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger btn-sm" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">✕ Delete</button>
+                    </form>
+                </div>
+                <p style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.5; margin: 0; white-space: pre-wrap;">{{ notice.message }}</p>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 3rem; color: var(--text-muted); border: 2px dashed var(--glass-border); border-radius: var(--radius-md);">
+                No announcements published yet.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

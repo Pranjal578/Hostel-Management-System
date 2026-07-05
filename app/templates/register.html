@@ -23,11 +23,27 @@
                     <input type="email" class="form-control tactile-inset" id="email" name="email" required placeholder="name@domain.com" value="{% if not clear_email %}{{ request.form.get('email', '') }}{% endif %}">
                 </div>
                 <div class="form-group col-6">
-                    <label class="form-label" for="hostel_id">Select Target Hostel *</label>
-                    <select class="form-control tactile-inset" id="hostel_id" name="hostel_id" required>
+                    <label class="form-label" for="hostel_code">Hostel Code <span style="color:var(--primary)">*</span></label>
+                    <input type="text" class="form-control tactile-inset" id="hostel_code" name="hostel_code"
+                        placeholder="e.g. HOS-2026-001"
+                        value="{{ hostel_code or request.form.get('hostel_code', '') }}"
+                        style="text-transform:uppercase; letter-spacing:0.05em;"
+                        oninput="this.value=this.value.toUpperCase()"
+                    >
+                    <small style="color:var(--text-secondary); font-size:0.78rem; margin-top:4px; display:block;">
+                        Enter the code your hostel owner shared with you.
+                        <a href="#" onclick="document.getElementById('hostel-fallback').style.display='block'; return false;"
+                           style="color:var(--primary); text-decoration:none;">Don't have a code? Pick from list.</a>
+                    </small>
+                </div>
+                <div class="form-group col-6" id="hostel-fallback" style="display:none;">
+                    <label class="form-label" for="hostel_id">Or Select Hostel</label>
+                    <select class="form-control tactile-inset" id="hostel_id" name="hostel_id">
                         <option value="">-- Choose Hostel --</option>
                         {% for h in hostels %}
-                            <option value="{{ h.id }}" {% if request.form.get('hostel_id')|string == h.id|string %}selected{% endif %}>{{ h.hostel_name }} ({{ h.location }})</option>
+                            <option value="{{ h.id }}" {% if request.form.get('hostel_id')|string == h.id|string %}selected{% endif %}>
+                                {{ h.hostel_name }}{% if h.hostel_code %} [{{ h.hostel_code }}]{% endif %} — {{ h.location }}
+                            </option>
                         {% endfor %}
                     </select>
                 </div>

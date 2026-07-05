@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}My Hostels - Owner Portal{% endblock %}
+
+{% block content %}
+<div style="margin-top: 1rem; margin-bottom: 2rem;">
+    <h1 style="font-size: 2.2rem; margin-bottom: 0.25rem;">🏢 Managed Hostels Registry</h1>
+    <p style="color: var(--text-secondary); margin: 0;">Add new properties, configure UPI billing QR codes, and configure monthly rents.</p>
+</div>
+
+<div class="bento-grid">
+    <!-- Form to Create New Hostel -->
+    <div class="bento-card glass-minimal col-5">
+        <h3 style="color: var(--accent); margin-bottom: 1.5rem;">🏗️ Register New Hostel Property</h3>
+        <form method="POST" action="{{ url_for('owner.create_hostel') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="form-group">
+                <label class="form-label" for="hostel_name">Hostel Name *</label>
+                <input type="text" class="form-control tactile-inset" id="hostel_name" name="hostel_name" required placeholder="e.g. Royal Palace Residency">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="location">Location Address *</label>
+                <input type="text" class="form-control tactile-inset" id="location" name="location" required placeholder="City or Full Address">
+            </div>
+
+            <div class="bento-grid" style="gap: 1rem; margin: 0;">
+                <div class="form-group col-12">
+                    <label class="form-label" for="total_capacity">Beds Capacity *</label>
+                    <input type="number" class="form-control tactile-inset" id="total_capacity" name="total_capacity" min="1" required placeholder="100">
+                </div>
+            </div>
+
+            <div class="bento-grid" style="gap: 1rem; margin: 0;">
+                <div class="form-group col-6">
+                    <label class="form-label" for="rent">Monthly Rent ($) *</label>
+                    <input type="number" step="0.01" class="form-control tactile-inset" id="rent" name="rent" required placeholder="e.g. 150.00">
+                </div>
+                <div class="form-group col-6">
+                    <label class="form-label" for="electricity_bill">Est. Electricity Bill ($) *</label>
+                    <input type="number" step="0.01" class="form-control tactile-inset" id="electricity_bill" name="electricity_bill" required placeholder="e.g. 20.00">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 2rem;">
+                <label class="form-label" for="facilities_text">Facilities (Comma-separated)</label>
+                <input type="text" class="form-control tactile-inset" id="facilities_text" name="facilities_text" placeholder="e.g. Wi-Fi, AC, Mess, Gym">
+            </div>
+            
+            <button type="submit" class="btn btn-secondary clay-btn" style="width: 100%;">Establish Hostel Property</button>
+        </form>
+    </div>
+
+    <!-- Active Hostels Catalog -->
+    <div class="bento-card glass-minimal col-7">
+        <h3 style="color: var(--primary); margin-bottom: 1.5rem;">🏢 My Active Hostels</h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            {% for h in hostels %}
+            <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <h4 style="margin: 0; font-size: 1.25rem;">{{ h.hostel_name }}</h4>
+                        <span style="font-size: 0.85rem; color: var(--text-secondary);">📍 {{ h.location }}</span>
+                    </div>
+                    <span class="badge badge-verified" style="animation: none;">Code: {{ h.hostel_code }}</span>
+                </div>
+
+                <div class="bento-grid" style="gap: 1rem; margin: 0; padding: 0.75rem; background: rgba(255, 255, 255, 0.01); border-radius: var(--radius-sm);">
+                    <div class="col-4">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Rent</span>
+                        <p style="margin: 0; font-weight: 700;">${{ h.rent }}</p>
+                    </div>
+                    <div class="col-4">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Electricity</span>
+                        <p style="margin: 0; font-weight: 700;">${{ h.electricity_bill }}</p>
+                    </div>
+                    <div class="col-4">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Beds</span>
+                        <p style="margin: 0; font-weight: 700;">{{ h.residents|length }} / {{ h.total_capacity }}</p>
+                    </div>
+                </div>
+
+                <!-- UPI QR Upload -->
+                <div style="border-top: 1px dashed var(--glass-border); padding-top: 1rem; display: flex; gap: 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        {% if h.payment_qr_code %}
+                            <img src="{{ h.payment_qr_code }}" alt="Billing QR" style="height: 60px; border-radius: 4px; border: 1px solid var(--glass-border); background: white; padding: 2px;">
+                        {% else %}
+                            <div style="height: 60px; width: 60px; border: 1px dashed var(--glass-border); border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; text-align: center; color: var(--text-muted);">No Billing QR</div>
+                        {% endif %}
+                        
+                        <form method="POST" action="{{ url_for('owner.upload_payment_qr', hostel_id=h.id) }}" enctype="multipart/form-data" style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="file" name="payment_qr" accept="image/*" required style="font-size: 0.8rem; max-width: 140px;">
+                            <button type="submit" class="btn btn-secondary btn-sm tactile-outset">Upload QR</button>
+                        </form>
+                    </div>
+                    
+                    <div style="display: flex; gap: 0.5rem;">
+                        {% if h.hostel_qr_code %}
+                            <a href="{{ h.hostel_qr_code }}" download="hostel_{{ h.id }}_qr.png" class="btn btn-secondary btn-sm tactile-outset" style="display: flex; align-items: center; gap: 0.25rem;">
+                                📥 Info QR
+                            </a>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('owner.delete_hostel', hostel_id=h.id) }}" onsubmit="return confirm('Delete this hostel property?');" style="display: inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 3rem; color: var(--text-muted); border: 2px dashed var(--glass-border); border-radius: var(--radius-md);">
+                No hostels established yet. Create one on the left!
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

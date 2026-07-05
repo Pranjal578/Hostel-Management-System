@@ -220,3 +220,47 @@ def send_test_email(email):
         return True, "Test email sent successfully"
     except Exception as e:
         return False, f"Failed to send test email: {str(e)}"
+
+
+def send_notice_email(resident_email, resident_name, hostel_name, notice_title, notice_message):
+    """
+    Notify a resident via email when their hostel owner posts a new notice.
+    """
+    try:
+        if not current_app.config.get('MAIL_SERVER'):
+            return False, "Email configuration not set up."
+
+        subject = f"📢 Notice from {hostel_name}: {notice_title}"
+        html_body = f"""
+        <html>
+            <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #1e293b; background-color: #f8fafc; padding: 20px;">
+                <div style="max-width: 540px; margin: 0 auto; padding: 30px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+                    <h2 style="color: #7c3aed; margin-top: 0; font-weight: 700;">📢 Hostel Notice</h2>
+                    <p style="font-size: 15px;">Hello <strong>{resident_name}</strong>,</p>
+                    <p style="font-size: 15px;">Your hostel <strong>{hostel_name}</strong> has posted a new notice:</p>
+                    <div style="background-color: #f5f3ff; border-left: 5px solid #7c3aed; padding: 16px 20px; border-radius: 6px; margin: 20px 0;">
+                        <p style="font-size: 16px; font-weight: 700; color: #6d28d9; margin: 0 0 8px 0;">{notice_title}</p>
+                        <p style="font-size: 15px; color: #374151; margin: 0;">{notice_message}</p>
+                    </div>
+                    <p style="font-size: 13px; color: #94a3b8; margin-top: 25px; border-top: 1px solid #f1f5f9; padding-top: 15px;">
+                        Log in to your resident dashboard to view all notices.
+                    </p>
+                </div>
+            </body>
+        </html>
+        """
+
+        msg = Message(
+            subject=subject,
+            recipients=[resident_email],
+            html=html_body,
+            sender=current_app.config.get('SENDER_EMAIL', 'noreply@hostelmanagement.com')
+        )
+
+        mail.send(msg)
+        return True, "Notice email sent."
+    except Exception as e:
+        error_msg = f"Failed to send notice email: {str(e)}"
+        print(error_msg)
+        return False, error_msg
+

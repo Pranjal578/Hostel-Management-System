@@ -6,7 +6,7 @@ from app.utils.photo_handler import save_photo, validate_photo
 settings_bp = Blueprint('settings', __name__)
 
 @settings_bp.route('/', methods=['GET'])
-@role_required('Resident', 'HostelOwner')
+@role_required('Resident', 'HostelOwner', 'SuperAdmin')
 def index():
     """Render Settings Dashboard"""
     user_id = session['user_id']
@@ -20,7 +20,7 @@ def index():
 
 
 @settings_bp.route('/profile', methods=['POST'])
-@role_required('Resident', 'HostelOwner')
+@role_required('Resident', 'HostelOwner', 'SuperAdmin')
 def update_profile():
     """Update user contact details (Residents cannot change room or hostel details)"""
     user_id = session['user_id']
@@ -98,7 +98,7 @@ def update_profile():
 
 
 @settings_bp.route('/security', methods=['POST'])
-@role_required('Resident', 'HostelOwner')
+@role_required('Resident', 'HostelOwner', 'SuperAdmin')
 def update_security():
     """Verify current password and change login credentials"""
     user_id = session['user_id']
@@ -137,7 +137,7 @@ def update_security():
 
 
 @settings_bp.route('/otp', methods=['POST'])
-@role_required('Resident', 'HostelOwner')
+@role_required('Resident', 'HostelOwner', 'SuperAdmin')
 def update_otp():
     """Toggle Multi-Factor OTP settings"""
     user_id = session['user_id']

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Owners - SuperAdmin Portal{% endblock %}
+
+{% block content %}
+<div style="margin-top: 1rem; margin-bottom: 2rem;">
+    <h1 style="font-size: 2.2rem; margin-bottom: 0.25rem;">👤 Hostel Owners Registry</h1>
+    <p style="color: var(--text-secondary); margin: 0;">Add new owner accounts and monitor active hostel managers.</p>
+</div>
+
+<div class="bento-grid">
+    <!-- Form to Create Owner Account -->
+    <div class="bento-card glass-minimal col-5">
+        <h3 style="color: var(--primary); margin-bottom: 1.5rem;">👤 Register Hostel Owner</h3>
+        <form method="POST" action="{{ url_for('admin.create_owner') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            
+            <div class="form-group">
+                <label class="form-label" for="email">Owner Login Email *</label>
+                <input type="email" class="form-control tactile-inset" id="email" name="email" required placeholder="owner@domain.com">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="password">Password *</label>
+                <input type="password" class="form-control tactile-inset" id="password" name="password" required minlength="6" placeholder="Enter secure password">
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 2rem;">
+                <label class="form-label" for="confirm_password">Confirm Password *</label>
+                <input type="password" class="form-control tactile-inset" id="confirm_password" name="confirm_password" required placeholder="Re-enter password">
+            </div>
+            
+            <button type="submit" class="btn btn-primary clay-btn" style="width: 100%;">Create Owner Account</button>
+        </form>
+    </div>
+
+    <!-- Active Owners List -->
+    <div class="bento-card glass-minimal col-7">
+        <h3 style="color: var(--accent); margin-bottom: 1.5rem;">🔑 Active Hostel Owners</h3>
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Email Address</th>
+                        <th>Hostels Managed</th>
+                        <th>Created Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for owner in owners %}
+                    <tr>
+                        <td><strong>{{ owner.email }}</strong></td>
+                        <td>
+                            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                {% for h in owner.hostels %}
+                                    <span style="font-size: 0.85rem;">🏢 {{ h.hostel_name }} [{{ h.hostel_code }}]</span>
+                                {% else %}
+                                    <span style="font-size: 0.85rem; color: var(--text-muted); font-style: italic;">No Hostels Assigned</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td>{{ owner.created_at.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            <form method="POST" action="{{ url_for('admin.delete_owner', owner_id=owner.id) }}" onsubmit="return confirm('Delete this owner user account?');" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2rem;">No owners registered in system yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

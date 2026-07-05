@@ -77,66 +77,7 @@
         </a>
     </div>
 
-    <!-- Card 3: Payments & Rent Management (Bento Col 6) -->
-    <div class="bento-card glass-minimal col-6" style="display: flex; flex-direction: column; justify-content: space-between;">
-        <div>
-            <h3 style="color: var(--warning); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">💳 Rent Payment Gateway</h3>
-            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">Scan/Download your hostel owner's payment QR code to pay rent via UPI or mobile banking, then upload the receipt proof below.</p>
-            
-            <div style="text-align: center; margin-bottom: 1.5rem;">
-                {% if resident.hostel.payment_qr_code %}
-                    <img src="{{ resident.hostel.payment_qr_code }}" alt="Hostel QR" style="max-height: 160px; border-radius: var(--radius-md); border: 2px solid var(--glass-border); padding: 5px; background: white;">
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">Hostel Billing QR Code</p>
-                {% else %}
-                    <div style="height: 160px; border: 2px dashed var(--glass-border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-weight: 500;">
-                        No UPI QR Configured by Owner
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <div>
-            {% if current_month_paid %}
-                <div class="alert alert-success" style="margin: 0; text-align: center;">
-                    ✓ Current Month Rent Receipt Filed / Verified!
-                </div>
-            {% else %}
-                <div class="alert alert-warning" style="margin: 0; text-align: center; border-color: rgba(245, 158, 11, 0.4);">
-                    ⚠️ Outstanding Payment Due for This Month!
-                </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- Card 4: Submit Payment Proof Receipt (Bento Col 6) -->
-    <div class="bento-card glass-minimal col-6">
-        <h3 style="color: var(--primary); margin-bottom: 1.25rem;">💸 Upload Transaction Receipt</h3>
-        <form method="POST" action="{{ url_for('resident.submit_payment') }}" enctype="multipart/form-data">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="bento-grid" style="gap: 1rem; margin-bottom: 0;">
-                <div class="form-group col-6">
-                    <label class="form-label" for="amount">Rent Amount ($) *</label>
-                    <input type="number" step="0.01" class="form-control tactile-inset" id="amount" name="amount" required placeholder="0.00">
-                </div>
-                <div class="form-group col-6">
-                    <label class="form-label" for="payment_date">Date of Payment *</label>
-                    <input type="date" class="form-control tactile-inset" id="payment_date" name="payment_date" required>
-                </div>
-                <div class="form-group col-12">
-                    <label class="form-label" for="transaction_id">UPI / Transaction ID *</label>
-                    <input type="text" class="form-control tactile-inset" id="transaction_id" name="transaction_id" required placeholder="Enter Transaction Reference ID">
-                </div>
-                <div class="form-group col-12" style="margin-bottom: 1.5rem;">
-                    <label class="form-label" for="screenshot">Upload Screenshot / PDF Receipt *</label>
-                    <input type="file" class="form-control tactile-inset" id="screenshot" name="screenshot" accept=".jpg,.jpeg,.png,.pdf" required style="padding: 0.5rem;">
-                    <small style="color: var(--text-muted);">Allowed: JPG, PNG, PDF. Max: 5MB.</small>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-success tactile-outset" style="width: 100%;">🚀 Submit for Owner Verification</button>
-        </form>
-    </div>
-
-    <!-- Card 5: Profile Core Metadata (Bento Col 12) -->
+    <!-- Card 3: Profile Core Metadata (Bento Col 12) -->
     <div class="bento-card glass-minimal col-12">
         <h3 style="color: var(--primary); margin-bottom: 1.5rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">📋 Resident Identity Details</h3>
         
@@ -182,51 +123,28 @@
             <button onclick="window.print()" class="btn btn-secondary btn-sm">🖨️ Print Profile Sheet</button>
         </div>
     </div>
+</div>
 
-    <!-- Card 6: Payment Transaction Logs (Bento Col 12) -->
+<!-- Hostel Notices Panel -->
+{% if hostel_notices %}
+<div class="bento-grid" style="margin-top:2rem;">
     <div class="bento-card glass-minimal col-12">
-        <h3 style="color: var(--primary); margin-bottom: 1rem;">📋 Billing & Transaction History</h3>
-        <div class="table-responsive">
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>Date Filed</th>
-                        <th>Rent Amount</th>
-                        <th>Payment Date</th>
-                        <th>Transaction Reference ID</th>
-                        <th>Receipt Document</th>
-                        <th>Verification Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p in payments %}
-                    <tr>
-                        <td>{{ p.created_at.strftime('%b %d, %Y %I:%M %p') }}</td>
-                        <td><strong>${{ p.amount }}</strong></td>
-                        <td>{{ p.payment_date.strftime('%b %d, %Y') }}</td>
-                        <td><code>{{ p.transaction_id }}</code></td>
-                        <td>
-                            <a href="{{ p.screenshot_path }}" target="_blank" style="color: var(--primary); text-decoration: underline;">Open Receipt</a>
-                        </td>
-                        <td>
-                            {% if p.status == 'Verified' %}
-                                <span class="badge badge-verified">Verified</span>
-                            {% elif p.status == 'Pending' %}
-                                <span class="badge badge-pending">Pending Review</span>
-                            {% else %}
-                                <span class="badge badge-rejected" title="Verify receipt details again.">Rejected</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 2rem;">No transaction receipts filed yet.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <h3 style="margin-bottom:1.25rem; font-size:1.1rem; color: var(--primary);">📢 Hostel Notices from {{ resident.hostel.hostel_name }}</h3>
+        <div style="display:flex; flex-direction:column; gap:12px;">
+            {% for notice in hostel_notices %}
+            <div style="background:rgba(124,58,237,.06); border:1px solid rgba(124,58,237,.2); border-radius:12px; padding:16px 20px;">
+                <div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+                    <span style="font-size:.8rem; background:rgba(124,58,237,.15); color:#a78bfa; border:1px solid rgba(124,58,237,.3); padding:2px 10px; border-radius:20px; font-weight:600;">Notice</span>
+                    <span style="font-size:.78rem; color:var(--text-muted);">{{ notice.created_at.strftime('%b %d, %Y') }}</span>
+                </div>
+                <div style="font-weight:700; font-size:.95rem; margin-bottom:4px; color:var(--text-primary);">{{ notice.title }}</div>
+                <div style="color:var(--text-secondary); font-size:.88rem; line-height:1.6; white-space: pre-wrap;">{{ notice.message }}</div>
+            </div>
+            {% endfor %}
         </div>
     </div>
 </div>
+{% endif %}
+
 {% endif %}
 {% endblock %}

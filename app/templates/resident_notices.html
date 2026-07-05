@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Hostel Notices & Announcements{% endblock %}
+
+{% block content %}
+<div style="margin-top: 1rem; margin-bottom: 2rem;">
+    <h1 style="font-size: 2.2rem; margin-bottom: 0.25rem;">📢 Hostel Bulletin Board</h1>
+    <p style="color: var(--text-secondary); margin: 0;">Official notices and broadcasts from {{ resident.hostel.hostel_name }} management.</p>
+</div>
+
+<div class="bento-grid">
+    <div class="bento-card glass-minimal col-12">
+        <h3 style="color: var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">📋 Announcements Bulletin Board</h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+            {% for notice in notices %}
+            <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.5rem; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <strong style="font-size: 1.2rem; color: var(--text-primary);">{{ notice.title }}</strong><br>
+                        <span style="font-size: 0.8rem; color: var(--text-muted);">📅 Broadcasted on {{ notice.created_at.strftime('%b %d, %Y %I:%M %p') }}</span>
+                    </div>
+                    <span class="badge badge-verified" style="animation: none; font-size: 0.75rem; padding: 0.25rem 0.75rem;">Official Notice</span>
+                </div>
+                <p style="color: var(--text-secondary); font-size: 1rem; line-height: 1.6; margin: 0; white-space: pre-wrap;">{{ notice.message }}</p>
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 4rem 1rem; color: var(--text-muted); border: 2px dashed var(--glass-border); border-radius: var(--radius-md);">
+                <span style="font-size: 3rem; display: block; margin-bottom: 1rem;">📢</span>
+                <p style="margin: 0; font-size: 1.1rem;">No announcements or notices have been posted on the board yet.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

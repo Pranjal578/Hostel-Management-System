@@ -16,6 +16,9 @@
             <div class="settings-nav-item" onclick="switchTab('mfaTab', this)">
                 🛡️ MFA Security (OTP)
             </div>
+            <div class="settings-nav-item" onclick="switchTab('appearanceTab', this)">
+                🎨 Appearance Settings
+            </div>
         </div>
     </div>
     
@@ -258,6 +261,22 @@
             </div>
         </div>
         
+        <!-- Tab 4: Appearance settings Panel -->
+        <div class="settings-tab-panel" id="appearanceTab">
+            <div class="bento-card" style="max-width: 550px; margin: 0 auto;">
+                <h3 style="color: var(--primary); margin-bottom: 1.5rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">Appearance Settings</h3>
+                <p style="color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1.5rem;">Select your preferred user interface color theme. Changes take effect immediately.</p>
+                
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label class="form-label" for="themeSelector">Color Theme</label>
+                    <select class="form-control tactile-inset" id="themeSelector" onchange="changeTheme(this.value)">
+                        <option value="dark">Sleek Dark Mode (Default)</option>
+                        <option value="light">Clean Light Mode</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
     </div>
 </div>
 {% endblock %}
@@ -279,8 +298,25 @@
         window.location.hash = panelId;
     }
     
+    function changeTheme(themeName) {
+        if (themeName === 'light') {
+            document.documentElement.classList.add('light-theme');
+            localStorage.setItem('theme', 'light');
+        } else {
+            document.documentElement.classList.remove('light-theme');
+            localStorage.setItem('theme', 'dark');
+        }
+    }
+    
     // Switch to tab on load if specified in URL hash (e.g. #securityTab)
     document.addEventListener('DOMContentLoaded', () => {
+        // Set dropdown state based on current theme
+        const currentTheme = localStorage.getItem('theme') || 'dark';
+        const selector = document.getElementById('themeSelector');
+        if (selector) {
+            selector.value = currentTheme;
+        }
+
         const hash = window.location.hash;
         if (hash) {
             const cleanHash = hash.replace('#', '');
@@ -291,6 +327,7 @@
                 let targetBtn = navItems[0];
                 if (cleanHash === 'securityTab') targetBtn = navItems[1];
                 else if (cleanHash === 'mfaTab') targetBtn = navItems[2];
+                else if (cleanHash === 'appearanceTab') targetBtn = navItems[3];
                 
                 switchTab(cleanHash, targetBtn);
             }

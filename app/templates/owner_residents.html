@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Residents - Owner Portal{% endblock %}
+
+{% block content %}
+<div style="margin-top: 1rem; margin-bottom: 2rem;">
+    <h1 style="font-size: 2.2rem; margin-bottom: 0.25rem;">👥 Residents Directory & QR Verification</h1>
+    <p style="color: var(--text-secondary); margin: 0;">Scan resident QR codes, search profiles, and edit tenant details.</p>
+</div>
+
+<!-- Search & QR Scanner Section -->
+<div class="bento-grid" style="margin-bottom: 1.5rem;">
+    <!-- Live Search -->
+    <div class="bento-card glass-minimal col-6" style="padding: 1.5rem 2rem; display: flex; flex-direction: column; justify-content: center;">
+        <h3 style="color: var(--primary); margin-bottom: 1rem;">🔍 Search Residents</h3>
+        <form method="GET" action="{{ url_for('owner.residents_list') }}" style="display: flex; gap: 0.5rem; align-items: center;">
+            <input type="text" name="search" class="form-control tactile-inset" placeholder="Search by name, room number, phone..." value="{{ search_query or '' }}" style="width: 100%;">
+            <button type="submit" class="btn btn-primary clay-btn" style="padding: 0.6rem 1.2rem;">Search</button>
+            {% if search_query %}
+                <a href="{{ url_for('owner.residents_list') }}" class="btn btn-secondary tactile-outset" style="padding: 0.6rem 1.2rem; text-decoration: none; display: flex; align-items: center; justify-content: center;">Clear</a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Scanner Trigger -->
+    <div class="bento-card glass-minimal col-6" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <h3 style="color: var(--accent); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">📸 Secure QR Scanner</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">Scan a resident's QR code to verify details and view payment status instantly.</p>
+            <div id="reader" style="width: 100%; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--glass-border); display: none; margin-bottom: 1rem;"></div>
+        </div>
+        <div style="display: flex; gap: 1rem;">
+            <button id="start-scan-btn" class="btn btn-primary clay-btn" onclick="startScanner()" style="flex: 1;">Activate Camera Scanner</button>
+            <button id="stop-scan-btn" class="btn btn-secondary tactile-outset" onclick="stopScanner()" style="flex: 1; display: none;">Deactivate</button>
+        </div>
+    </div>
+</div>
+
+<div class="bento-grid">
+    <!-- Active Residents list -->
+    <div class="bento-card glass-minimal col-12">
+        <h3 style="color: var(--primary); margin-bottom: 1.5rem;">📋 Active Residents Registry</h3>
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Hostel</th>
+                        <th>Room</th>
+                        <th>Name</th>
+                        <th>Contact info</th>
+                        <th>Joining Date</th>
+                        <th>Payment</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in residents %}
+                    <tr>
+                        <td><strong>{{ r.hostel.hostel_name }}</strong></td>
+                        <td>Room {{ r.room_number }}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <img src="{{ r.profile_image and '/static/images/' + r.profile_image or '/static/images/default_profile.png' }}" 
+                                     alt="Profile" 
+                                     style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid var(--glass-border);"
+                                     onerror="this.src='/static/images/default_profile.png'">
+                                <span>{{ r.full_name }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            Email: {{ r.user.email }}<br>
+                            Phone: {{ r.phone_decrypted }}
+                        </td>
+                        <td>{{ r.date_of_joining.strftime('%b %d, %Y') }}</td>
+                        <td>
+                            {% if r.payment_status == 'Verified' %}
+                                <span class="badge badge-verified">Verified</span>
+                            {% elif r.payment_status == 'Pending' %}
+                                <span class="badge badge-pending">Pending Review</span>
+                            {% else %}
+                                <span class="badge badge-rejected">None</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <a href="{{ url_for('owner.edit_resident', resident_id=r.id) }}" class="btn btn-secondary btn-sm tactile-outset">Edit</a>
+                                <form method="POST" action="{{ url_for('owner.delete_resident', resident_id=r.id) }}" onsubmit="return confirm('Delete this resident profile? All credentials will be deleted.');" style="display:inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No residents found in registry.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Secure Scanner Scan Success Detail -->
+<div class="modal" id="scanSuccessModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); z-index: 2000; align-items: center; justify-content: center; padding: 20px;">
+    <div class="bento-card glass-liquid" style="max-width: 500px; width: 100%; padding: 2rem; position: relative;">
+        <button class="modal-close" onclick="closeModal('scanSuccessModal')" style="position: absolute; top: 1rem; right: 1rem; border: none; background: transparent; font-size: 1.5rem; color: var(--text-secondary); cursor: pointer;">✕</button>
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <h3 style="margin: 0; color: var(--success); font-size: 1.5rem;" id="scanResidentName">Resident Identity Details</h3>
+        </div>
+        <div style="display: flex; gap: 1.5rem; align-items: flex-start; margin-bottom: 1.5rem;">
+            <img id="scanResidentImage" src="" alt="Photo" style="width: 110px; height: 110px; object-fit: cover; border-radius: var(--radius-md); border: 2px solid var(--glass-border);">
+            <div style="flex: 1;">
+                <p style="margin: 0 0 0.5rem 0; font-size: 0.95rem;"><strong style="color: var(--primary);">Room:</strong> <span id="scanResidentRoom"></span></p>
+                <p style="margin: 0 0 0.5rem 0; font-size: 0.95rem;"><strong style="color: var(--primary);">Email:</strong> <span id="scanResidentEmail"></span></p>
+                <p style="margin: 0 0 0.5rem 0; font-size: 0.95rem;"><strong style="color: var(--primary);">Phone:</strong> <span id="scanResidentPhone"></span></p>
+                <p style="margin: 0 0 0 0; font-size: 0.95rem;"><strong style="color: var(--primary);">Joined:</strong> <span id="scanResidentJoined"></span></p>
+            </div>
+        </div>
+        <h4 style="margin-top: 1.5rem; color: var(--accent); border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; font-size: 1.1rem; margin-bottom: 0.5rem;">Recent Payments</h4>
+        <div id="scanResidentPayments" style="max-height: 150px; overflow-y: auto; font-size: 0.9rem;">
+            <!-- Dynamic entries loaded here -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Include html5-qrcode library for scanner -->
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+    let html5QrCode = null;
+
+    function startScanner() {
+        const readerDiv = document.getElementById('reader');
+        readerDiv.style.display = 'block';
+        
+        document.getElementById('start-scan-btn').style.display = 'none';
+        document.getElementById('stop-scan-btn').style.display = 'block';
+
+        if (!html5QrCode) {
+            html5QrCode = new Html5Qrcode("reader");
+        }
+        
+        const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+            stopScanner();
+            
+            // Decoded URL contains resident profile ID, e.g. .../profile/4
+            const matches = decodedText.match(/\/profile\/(\d+)/);
+            if (matches && matches[1]) {
+                const residentId = matches[1];
+                fetchResidentDetails(residentId);
+            } else {
+                alert("Invalid QR format scanned! Decoded text: " + decodedText);
+            }
+        };
+        
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        
+        html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+            .catch(err => {
+                console.error("Camera startup failed", err);
+                alert("Could not start camera: " + err);
+                stopScanner();
+            });
+    }
+
+    function stopScanner() {
+        const readerDiv = document.getElementById('reader');
+        readerDiv.style.display = 'none';
+        
+        document.getElementById('start-scan-btn').style.display = 'block';
+        document.getElementById('stop-scan-btn').style.display = 'none';
+
+        if (html5QrCode && html5QrCode.isScanning) {
+            html5QrCode.stop().then(ignore => {
+                console.log("Scanner stopped.");
+            }).catch(err => {
+                console.error("Failed to stop scanner", err);
+            });
+        }
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    function fetchResidentDetails(id) {
+        fetch(`/api/resident-details/${id}`)
+            .then(res => {
+                if (res.status === 403) {
+                    alert("Permission denied. You do not manage this resident.");
+                    throw new Error("403 Forbidden");
+                }
+                return res.json();
+            })
+            .then(data => {
+                document.getElementById('scanResidentName').innerText = data.full_name;
+                document.getElementById('scanResidentRoom').innerText = data.room_number;
+                document.getElementById('scanResidentEmail').innerText = data.email;
+                document.getElementById('scanResidentPhone').innerText = data.phone;
+                document.getElementById('scanResidentJoined').innerText = data.date_of_joining;
+                document.getElementById('scanResidentImage').src = data.profile_image ? `/static/images/${data.profile_image}` : '/static/images/default_profile.png';
+                
+                const paymentDiv = document.getElementById('scanResidentPayments');
+                paymentDiv.innerHTML = '';
+                
+                if (data.payments && data.payments.length > 0) {
+                    data.payments.forEach(p => {
+                        const statusClass = p.status === 'Verified' ? 'badge-verified' : (p.status === 'Pending' ? 'badge-pending' : 'badge-rejected');
+                        paymentDiv.innerHTML += `
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem; padding:0.5rem; background:rgba(255,255,255,0.02); border-radius:var(--radius-sm);">
+                                <span>$${p.amount} (${p.payment_date})</span>
+                                <span class="badge ${statusClass}">${p.status}</span>
+                            </div>
+                        `;
+                    });
+                } else {
+                    paymentDiv.innerHTML = '<div style="color:var(--text-muted); text-align: center; padding: 1rem 0;">No payment logs found.</div>';
+                }
+                
+                document.getElementById('scanSuccessModal').style.display = 'flex';
+            })
+            .catch(err => console.error("API error", err));
+    }
+</script>
+{% endblock %}

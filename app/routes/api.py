@@ -83,3 +83,66 @@ def search_residents_globally():
         
     return jsonify(results)
 
+
+@api_bp.route('/chat/messages/<int:recipient_id>', methods=['GET'])
+@role_required('HostelOwner', 'Resident')
+def get_chat_messages(recipient_id):
+    """Retrieve chat history between current user and recipient"""
+    from app.models.db import Message
+    current_user_id = session['user_id']
+    messages = Message.query.filter(
+        ((Message.sender_id == current_user_id) & (Message.receiver_id == recipient_id)) |
+        ((Message.sender_id == recipient_id) & (Message.receiver_id == current_user_id))
+    ).order_by(Message.created_at.asc()).all()
+    
+    # Mark incoming messages as read
+    unread_incoming = [m for m in messages if m.receiver_id == current_user_id and not m.is_read]
+    for m in unread_incoming:
+        m.is_read = True
+    if unread_incoming:
+        db.session.commit()
+
+    return jsonify([{
+        'id': m.id,
+        'sender_id': m.sender_id,
+        'receiver_id': m.receiver_id,
+        'message_content': m.message_content,
+        'created_at': m.created_at.strftime('%I:%M %p | %b %d'),
+        'is_read': m.is_read
+    } for m in messages])
+
+
+@api_bp.route('/chat/messages/<int:recipient_id>', methods=['POST'])
+@role_required('HostelOwner', 'Resident')
+def send_chat_message(recipient_id):
+    """Send a new message to a recipient"""
+    from app.models.db import Message
+    current_user_id = session['user_id']
+    
+    # Check JSON or form request
+    content = ""
+    if request.is_json:
+        content = request.json.get('message_content', '').strip()
+    else:
+        content = request.form.get('message_content', '').strip()
+        
+    if not content:
+        return jsonify({'error': 'Message content cannot be empty'}), 400
+        
+    msg = Message(
+        sender_id=current_user_id,
+        receiver_id=recipient_id,
+        message_content=content
+    )
+    db.session.add(msg)
+    db.session.commit()
+    
+    return jsonify({
+        'id': msg.id,
+        'sender_id': msg.sender_id,
+        'receiver_id': msg.receiver_id,
+        'message_content': msg.message_content,
+        'created_at': msg.created_at.strftime('%I:%M %p | %b %d'),
+        'is_read': msg.is_read
+    })
+

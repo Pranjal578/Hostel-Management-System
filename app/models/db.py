@@ -75,12 +75,34 @@ class Hostel(db.Model):
     total_capacity = db.Column(db.Integer, nullable=False, default=100)
     payment_qr_code = db.Column(db.String(200), nullable=True)  # Path to payment QR image
     
+    # Prices / bills
+    rent = db.Column(db.Float, nullable=True, default=0.0)
+    electricity_bill = db.Column(db.Float, nullable=True, default=0.0)
+    
+    # Multi-tenant discovery fields
+    hostel_code = db.Column(db.String(20), unique=True, nullable=True)  # e.g. HOS-2026-001
+    facilities = db.Column(db.Text, nullable=True)  # Comma-separated: "Wi-Fi,Laundry,Mess"
+    hostel_qr_code = db.Column(db.String(200), nullable=True)  # Path to hostel-info QR image
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     residents = db.relationship('Resident', backref='hostel', lazy=True)
     payments = db.relationship('Payment', backref='hostel', lazy=True)
+    notices = db.relationship('Notice', backref='hostel', lazy=True, cascade='all, delete-orphan')
+    
+    @property
+    def facilities_list(self):
+        """Return facilities as a Python list"""
+        if not self.facilities:
+            return []
+        return [f.strip() for f in self.facilities.split(',') if f.strip()]
+    
+    @property
+    def available_rooms(self):
+        """Calculate available rooms dynamically from resident count"""
+        return max(0, self.total_capacity - len(self.residents))
     
     @property
     def pending_payments_count(self):
@@ -273,3 +295,36 @@ class AuditLog(db.Model):
     
     def __repr__(self):
         return f'<AuditLog User {self.user_id} - Action {self.action} - Time {self.timestamp}>'
+
+
+class Notice(db.Model):
+    """Notice model for hostel owner announcements to residents"""
+    __tablename__ = 'notices'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    hostel_id = db.Column(db.Integer, db.ForeignKey('hostels.id'), nullable=False)
+    title = db.Column(db.String(150), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<Notice Hostel {self.hostel_id} - {self.title}>'
+
+
+class Message(db.Model):
+    """Message model for simple chat history between owners and residents"""
+    __tablename__ = 'messages'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    receiver_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    message_content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    is_read = db.Column(db.Boolean, default=False)
+    
+    # Relationships
+    sender = db.relationship('User', foreign_keys=[sender_id], backref='sent_messages')
+    receiver = db.relationship('User', foreign_keys=[receiver_id], backref='received_messages')
+    
+    def __repr__(self):
+        return f'<Message Sender {self.sender_id} -> Receiver {self.receiver_id} at {self.created_at}>'

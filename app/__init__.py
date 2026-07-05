@@ -1,5 +1,5 @@
 import os
-from flask import Flask, redirect, url_for, session
+from flask import Flask, redirect, url_for, session, render_template
 from app.models.db import db, User
 from app.utils.email_sender import init_mail
 from config import DevelopmentConfig, ProductionConfig
@@ -80,7 +80,9 @@ def create_app(config_name=None):
                 print("[INFO] Migrations directory not found. Skipping auto-upgrade.")
 
         try:
-            from app.models.db import Payment
+            from app.models.db import Payment, Hostel
+            from app.utils.qr_generator import generate_hostel_qr
+            
             old_payments = Payment.query.filter(Payment.screenshot_path.like('/static/uploads/payments/%')).all()
             for p in old_payments:
                 filename = p.screenshot_path.split('/')[-1]
@@ -88,6 +90,24 @@ def create_app(config_name=None):
             if old_payments:
                 db.session.commit()
                 print(f"[OK] Migrated {len(old_payments)} payment paths to secure-receipt route.")
+
+            # Self-healing missing Hostel Codes & QR Codes
+            hostels = Hostel.query.all()
+            for h in hostels:
+                modified = False
+                if not h.hostel_code:
+                    from datetime import datetime
+                    year = datetime.utcnow().year
+                    existing_codes = db.session.query(Hostel.hostel_code).filter(Hostel.hostel_code.like(f"HOS-{year}-%")).all()
+                    seq = len(existing_codes) + 1
+                    h.hostel_code = f"HOS-{year}-{seq:03d}"
+                    modified = True
+                if not h.hostel_qr_code or not os.path.exists(os.path.join(app.root_path, h.hostel_qr_code.lstrip('/'))):
+                    h.hostel_qr_code = generate_hostel_qr(h)
+                    modified = True
+                if modified:
+                    db.session.commit()
+                    print(f"[OK] Self-healed code/QR for hostel '{h.hostel_name}'.")
         except Exception as e:
             # Database or table might not exist yet during initialization/checks
             pass
@@ -104,17 +124,7 @@ def create_app(config_name=None):
     # Default landing route
     @app.route('/')
     def index():
-        if 'user_id' in session:
-            # Re-route logged in user to their dashboard
-            user = User.query.get(session['user_id'])
-            if user:
-                if user.role == 'SuperAdmin':
-                    return redirect(url_for('admin.dashboard'))
-                elif user.role == 'HostelOwner':
-                    return redirect(url_for('owner.dashboard'))
-                elif user.role == 'Resident':
-                    return redirect(url_for('resident.dashboard'))
-        return redirect(url_for('auth.login'))
+        return render_template('index.html')
 
     # Security Headers Middleware
     @app.after_request

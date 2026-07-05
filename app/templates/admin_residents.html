@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Platform Residents Registry - SuperAdmin Portal{% endblock %}
+
+{% block content %}
+<div style="margin-top: 1rem; margin-bottom: 2rem;">
+    <h1 style="font-size: 2.2rem; margin-bottom: 0.25rem;">📋 Platform Residents Registry</h1>
+    <p style="color: var(--text-secondary); margin: 0;">Global view of all registered residents sorted hostel-wise.</p>
+</div>
+
+<!-- Real-Time Global Search Bar -->
+<div class="bento-grid" style="margin-bottom: 1.5rem;">
+    <div class="bento-card glass-minimal col-12" style="padding: 1.25rem 2rem;">
+        <div style="display: flex; gap: 1rem; align-items: center;">
+            <span style="font-size: 1.5rem; filter: drop-shadow(0 0 5px var(--primary-glow));">🔍</span>
+            <input type="text" id="global-resident-search" class="form-control" placeholder="Search residents by name, room, or hostel across the platform (type to search)..." style="font-size: 1.1rem; padding: 0.8rem 1.5rem; border-color: rgba(255,255,255,0.06); width: 100%;">
+        </div>
+    </div>
+</div>
+
+<div class="bento-grid">
+    <!-- Hostel-wise lists -->
+    {% for hostel in hostels %}
+    <div class="bento-card glass-minimal col-12 hostel-section" id="hostel-section-{{ hostel.id }}" style="margin-bottom: 1.5rem;">
+        <h3 style="color: var(--primary); margin-bottom: 1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
+            <span>🏢 {{ hostel.hostel_name }} [{{ hostel.hostel_code }}]</span>
+            <span style="font-size: 0.85rem; color: var(--text-secondary);">Residents: {{ hostel.residents|length }} / {{ hostel.total_capacity }}</span>
+        </h3>
+        
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead>
+                    <tr>
+                        <th>Room</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Guardian</th>
+                        <th>Payment Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in hostel.residents %}
+                    <tr class="resident-row" data-name="{{ r.full_name|lower }}" data-room="{{ r.room_number|lower }}" data-hostel="{{ hostel.hostel_name|lower }}">
+                        <td><strong>{{ r.room_number }}</strong></td>
+                        <td>{{ r.full_name }}</td>
+                        <td>{{ r.user.email }}</td>
+                        <td>{{ r.phone_decrypted }}</td>
+                        <td>
+                            {% if r.guardian_name %}
+                                {{ r.guardian_name }} ({{ r.guardian_phone }})
+                            {% else %}
+                                <span style="color: var(--text-muted); font-style: italic;">None</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if r.payment_status == 'Verified' %}
+                                <span class="badge badge-verified">Verified</span>
+                            {% elif r.payment_status == 'Pending' %}
+                                <span class="badge badge-pending">Pending Review</span>
+                            {% else %}
+                                <span class="badge badge-rejected">No / Rejected Payment</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">No residents registered in this hostel yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="bento-card glass-minimal col-12 text-center" style="padding: 3rem;">
+        <p style="color: var(--text-muted); margin: 0; font-size: 1.1rem;">No hostels established yet.</p>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('global-resident-search');
+        if (searchInput) {
+            searchInput.addEventListener('input', function(e) {
+                const query = e.target.value.toLowerCase().strip ? e.target.value.toLowerCase().trim() : e.target.value.toLowerCase();
+                const sections = document.querySelectorAll('.hostel-section');
+                
+                sections.forEach(section => {
+                    const rows = section.querySelectorAll('.resident-row');
+                    let visibleRows = 0;
+                    
+                    rows.forEach(row => {
+                        const name = row.getAttribute('data-name');
+                        const room = row.getAttribute('data-room');
+                        const hostel = row.getAttribute('data-hostel');
+                        
+                        if (name.includes(query) || room.includes(query) || hostel.includes(query)) {
+                            row.style.display = '';
+                            visibleRows++;
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                    
+                    // Hide section if no visible residents and query not empty
+                    if (query && visibleRows === 0) {
+                        section.style.display = 'none';
+                    } else {
+                        section.style.display = '';
+                    }
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -127,16 +127,19 @@ Use the default administrator account to establish the first hostel and manager 
 Deploying the system using Docker and DigitalOcean's managed services ensures a robust, production-grade SaaS delivery pipeline.
 
 ### Step 1: Prepare Your Project
+
 Make sure all your source code changes are committed and pushed to your GitHub repository.
 The included [Dockerfile](file:///d:/Program%20Files/code/projects/hostel_management_system/Dockerfile) is fully configured for Python 3.11-slim, installs necessary system packages (for building modules), and binds the application to port `8080` using `gunicorn`.
 
 ### Step 2: Create App on DigitalOcean App Platform
+
 1. Log in to your **DigitalOcean Control Panel**.
 2. Click **Create** in the top right, then select **Apps**.
 3. Choose **GitHub** as the source, authorize DigitalOcean access if prompted, and select your repository and deployment branch (e.g., `main`).
 4. Click **Next**.
 
 ### Step 3: Configure Resources & Database
+
 1. DigitalOcean will automatically detect the `Dockerfile` at the root of the project.
 2. Under **HTTP Routes**, ensure the port is set to `8080` (this matches the `gunicorn` bind command in the Dockerfile).
 3. Under **Resources**, click **Add Database**.
@@ -145,7 +148,9 @@ The included [Dockerfile](file:///d:/Program%20Files/code/projects/hostel_manage
    * DigitalOcean will automatically inject the connection string as the `DATABASE_URL` environment variable. Our app automatically handles converting `postgres://` prefixes to `postgresql://` so that SQLAlchemy integrates seamlessly.
 
 ### Step 4: Setup Environment Variables
+
 Under the **App Settings** -> **Environment Variables** panel in DigitalOcean, manually add your system secrets (mirroring `.env` settings):
+
 * `SECRET_KEY`: (A secure random 32-byte hex key)
 * `ENCRYPTION_KEY`: (Your generated 32-byte AES Fernet encryption key)
 * `ADMIN_USERNAME`: (Production SuperAdmin email/username)
@@ -155,12 +160,15 @@ Under the **App Settings** -> **Environment Variables** panel in DigitalOcean, m
 * `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_PHONE_NUMBER`: (Your Twilio credentials, if using SMS)
 
 ### Step 5: Database Schema Initialization & Migrations
-The application is pre-configured with **Flask-Migrate**. 
+
+The application is pre-configured with **Flask-Migrate**.
 On every startup (including when DigitalOcean spins up your Docker container), the application context automatically checks for and applies any pending migrations to ensure your SQL database is fully up-to-date with your models.
 
 Should you need to manually force table updates or verify the database state:
+
 1. Navigate to the **Console** tab of your App service component in DigitalOcean.
 2. Execute the initialization command:
+
    ```bash
    python manage.py init-db
    ```
@@ -168,20 +176,23 @@ Should you need to manually force table updates or verify the database state:
 ---
 
 ## Database Migrations (Flask-Migrate)
+
 When you modify database models in `app/models/db.py` during development, you should record and apply schema migrations:
 
 1. **Create a migration script** (detects model changes):
+
    ```bash
    flask db migrate -m "Describe your schema change"
    ```
+
 2. **Apply the migration locally**:
+
    ```bash
    flask db upgrade
    ```
+
 3. **Deploy the migration**:
    Commit the generated script in `migrations/versions/` to your Git repository. On your next push, DigitalOcean App Platform will automatically apply the database upgrade script on startup!
-
----
 
 ## Support & License
 

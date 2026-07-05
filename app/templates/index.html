@@ -4,152 +4,120 @@
 
 {% block content %}
 <!-- Hero Section -->
-<section class="hero">
-    <div class="container">
-        <h1>🏠 Hostel Resident Management System</h1>
-        <p>Digital profile pages for every resident with QR code access</p>
-        
-        <div class="hero-buttons">
-            {% if not session.get('resident_id') and not session.get('is_admin') %}
-                <a href="{{ url_for('register') }}" class="btn btn-lg btn-primary">Register Now</a>
-                <a href="{{ url_for('resident_login') }}" class="btn btn-lg btn-outline">Login</a>
-            {% elif session.get('resident_id') %}
-                <a href="{{ url_for('resident_dashboard') }}" class="btn btn-lg btn-primary">Go to Dashboard</a>
-            {% elif session.get('is_admin') %}
-                <a href="{{ url_for('admin_dashboard') }}" class="btn btn-lg btn-primary">Admin Dashboard</a>
-            {% endif %}
-        </div>
+<div style="text-align: center; padding: 4rem 1.5rem; margin-bottom: 2rem;">
+    <h1 style="font-size: 3rem; margin-bottom: 1rem; background: linear-gradient(135deg, var(--text-primary) 0%, var(--primary) 50%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 10px rgba(56,189,248,0.15));">🏠 Hostel Resident Hub</h1>
+    <p style="font-size: 1.25rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto 2.5rem auto;">A modern, digital-first resident directory featuring secure access, instant payment confirmations, and dynamic QR profiling.</p>
+    
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        {% if not session.get('user_id') %}
+            <a href="{{ url_for('auth.hostel_discovery') }}" class="btn btn-primary clay-btn" style="padding: 0.8rem 2rem; font-size: 1rem; font-weight: 600; text-decoration: none;">
+                🔍 Discover Hostels
+            </a>
+            <a href="{{ url_for('auth.login') }}" class="btn btn-secondary tactile-outset" style="padding: 0.8rem 2rem; font-size: 1rem; font-weight: 600; text-decoration: none;">
+                🔑 Access Portal
+            </a>
+        {% else %}
+            <a href="{{ url_for('auth.dashboard_redirect') }}" class="btn btn-primary clay-btn" style="padding: 0.8rem 2.5rem; font-size: 1rem; font-weight: 600; text-decoration: none;">
+                ⚡ Go to Dashboard
+            </a>
+        {% endif %}
     </div>
-</section>
+</div>
 
 <!-- Features Section -->
-<section class="container" style="margin-top: 3rem;">
-    <div class="text-center mb-4">
-        <h2>Why Choose Our System?</h2>
-        <p>Modern, efficient, and easy to use hostel management</p>
+<div style="margin-bottom: 3.5rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h2 style="font-size: 1.8rem; color: var(--text-primary); margin-bottom: 0.5rem;">Core Platform Pillars</h2>
+        <p style="color: var(--text-secondary); margin: 0;">Everything required to run modern, paperless hostel communities.</p>
     </div>
     
-    <div class="grid grid-3">
-        <!-- Feature 1 -->
-        <div class="card">
-            <div class="text-center">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">📱</div>
-                <h3>QR Code Profiles</h3>
-                <p>Each resident gets a unique QR code that links to their digital profile. Scan and view instantly!</p>
-            </div>
+    <div class="bento-grid">
+        <!-- Card 1 -->
+        <div class="bento-card glass-minimal col-4" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="font-size: 2.25rem; filter: drop-shadow(0 0 5px var(--primary-glow));">📱</div>
+            <h3 style="margin: 0; font-size: 1.25rem; color: var(--text-primary);">QR Identity Cards</h3>
+            <p style="margin: 0; color: var(--text-secondary); font-size: 0.925rem; line-height: 1.5;">Residents get downloadable digital ID cards with dynamic QR codes for instant verification.</p>
         </div>
         
-        <!-- Feature 2 -->
-        <div class="card">
-            <div class="text-center">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
-                <h3>Secure Access</h3>
-                <p>Role-based authentication ensures residents can only edit their own data while admins have full control.</p>
-            </div>
+        <!-- Card 2 -->
+        <div class="bento-card glass-minimal col-4" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="font-size: 2.25rem; filter: drop-shadow(0 0 5px var(--accent-glow));">💳</div>
+            <h3 style="margin: 0; font-size: 1.25rem; color: var(--text-primary);">Fast UPI Payments</h3>
+            <p style="margin: 0; color: var(--text-secondary); font-size: 0.925rem; line-height: 1.5;">Residents scan owner UPI codes and upload receipts directly to trigger email logs.</p>
         </div>
         
-        <!-- Feature 3 -->
-        <div class="card">
-            <div class="text-center">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">💾</div>
-                <h3>Real-Time Updates</h3>
-                <p>All changes are reflected instantly in the database. No need to regenerate QR codes!</p>
-            </div>
+        <!-- Card 3 -->
+        <div class="bento-card glass-minimal col-4" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="font-size: 2.25rem; filter: drop-shadow(0 0 5px var(--success-glow));">📢</div>
+            <h3 style="margin: 0; font-size: 1.25rem; color: var(--text-primary);">Notice Bulletins</h3>
+            <p style="margin: 0; color: var(--text-secondary); font-size: 0.925rem; line-height: 1.5;">Post announcements to all residents at once, with instant system notifications.</p>
         </div>
         
-        <!-- Feature 4 -->
-        <div class="card">
-            <div class="text-center">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">📊</div>
-                <h3>Room Management</h3>
-                <p>View all residents organized by room numbers. Easy navigation and search functionality.</p>
-            </div>
+        <!-- Card 4 -->
+        <div class="bento-card glass-minimal col-4" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="font-size: 2.25rem; filter: drop-shadow(0 0 5px var(--primary-glow));">🔒</div>
+            <h3 style="margin: 0; font-size: 1.25rem; color: var(--text-primary);">Secure Privacy</h3>
+            <p style="margin: 0; color: var(--text-secondary); font-size: 0.925rem; line-height: 1.5;">Aadhaar/identity data is masked, and files are secured behind session checkpoints.</p>
         </div>
         
-        <!-- Feature 5 -->
-        <div class="card">
-            <div class="text-center">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">👤</div>
-                <h3>Profile Control</h3>
-                <p>Residents can update their contact details and emergency information anytime after login.</p>
-            </div>
+        <!-- Card 5 -->
+        <div class="bento-card glass-minimal col-4" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="font-size: 2.25rem; filter: drop-shadow(0 0 5px var(--accent-glow));">💬</div>
+            <h3 style="margin: 0; font-size: 1.25rem; color: var(--text-primary);">Direct Chat Room</h3>
+            <p style="margin: 0; color: var(--text-secondary); font-size: 0.925rem; line-height: 1.5;">Instant WhatsApp-style text thread communication channel for tenant support queries.</p>
         </div>
         
-        <!-- Feature 6 -->
-        <div class="card">
-            <div class="text-center">
-                <div style="font-size: 3rem; margin-bottom: 1rem;">📱</div>
-                <h3>Mobile Friendly</h3>
-                <p>Fully responsive design works perfectly on all devices - phones, tablets, and desktops.</p>
-            </div>
+        <!-- Card 6 -->
+        <div class="bento-card glass-minimal col-4" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <div style="font-size: 2.25rem; filter: drop-shadow(0 0 5px var(--success-glow));">📱</div>
+            <h3 style="margin: 0; font-size: 1.25rem; color: var(--text-primary);">Mobile Adaptive</h3>
+            <p style="margin: 0; color: var(--text-secondary); font-size: 0.925rem; line-height: 1.5;">Optimized using CSS Grid variables to provide a seamless layout on any device size.</p>
         </div>
     </div>
-</section>
+</div>
 
 <!-- How It Works Section -->
-<section class="container" style="margin-top: 3rem;">
-    <div class="text-center mb-4">
-        <h2>How It Works</h2>
+<div style="margin-bottom: 3.5rem;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h2 style="font-size: 1.8rem; color: var(--text-primary); margin-bottom: 0.5rem;">Operation Breakdown</h2>
+        <p style="color: var(--text-secondary); margin: 0;">Designed around clarity and minimal workflows.</p>
     </div>
     
-    <div class="grid grid-2">
+    <div class="bento-grid">
         <!-- For Residents -->
-        <div class="card">
-            <h3 style="color: var(--primary-color);">👤 For Residents</h3>
-            <ol style="line-height: 2; color: var(--text-secondary);">
-                <li><strong>Register:</strong> Fill the registration form with your details</li>
-                <li><strong>Get QR Code:</strong> Receive your unique QR code automatically</li>
-                <li><strong>Login:</strong> Access your profile anytime with your credentials</li>
-                <li><strong>Update:</strong> Edit your contact and emergency information</li>
-                <li><strong>Share:</strong> Your QR code provides instant access to your profile</li>
-            </ol>
+        <div class="bento-card glass-minimal col-6" style="display: flex; flex-direction: column; gap: 1rem;">
+            <h3 style="color: var(--primary); margin: 0; font-size: 1.35rem; display: flex; align-items: center; gap: 0.5rem;">👥 For Residents</h3>
+            <ul style="line-height: 1.8; color: var(--text-secondary); margin: 0; padding-left: 1.2rem; font-size: 0.95rem;">
+                <li><strong>Join Easily:</strong> Sign up using an owner's unique hostel join code.</li>
+                <li><strong>Dynamic ID:</strong> Access your profile card, containing auto-generated identity QR codes.</li>
+                <li><strong>Monthly Bill:</strong> View outstanding rent dues, copy UPI codes, and upload screenshots.</li>
+                <li><strong>Tenant Support:</strong> Exchange messages in the direct text panel with managers.</li>
+            </ul>
         </div>
         
-        <!-- For Admins -->
-        <div class="card">
-            <h3 style="color: var(--danger-color);">👮‍♂️ For Admins</h3>
-            <ol style="line-height: 2; color: var(--text-secondary);">
-                <li><strong>Login:</strong> Access admin panel with credentials</li>
-                <li><strong>View All:</strong> See all residents organized by room number</li>
-                <li><strong>Edit Profiles:</strong> Update any resident's information</li>
-                <li><strong>Delete Records:</strong> Remove residents when they leave</li>
-                <li><strong>Manage:</strong> Full control over the entire database</li>
-            </ol>
+        <!-- For Managers -->
+        <div class="bento-card glass-minimal col-6" style="display: flex; flex-direction: column; gap: 1rem;">
+            <h3 style="color: var(--accent); margin: 0; font-size: 1.35rem; display: flex; align-items: center; gap: 0.5rem;">🏢 For Hostel Owners</h3>
+            <ul style="line-height: 1.8; color: var(--text-secondary); margin: 0; padding-left: 1.2rem; font-size: 0.95rem;">
+                <li><strong>Multiple Properties:</strong> Control multiple hostels inside a single owner profile dashboard.</li>
+                <li><strong>Payments Dashboard:</strong> Confirm pending billing receipts or reject duplicates with reasons.</li>
+                <li><strong>Notice Broadcaster:</strong> Type announcements and dispatch alert emails automatically.</li>
+                <li><strong>Scanner Verification:</strong> Scan a tenant's profile QR to instantly check identity and ledger status.</li>
+            </ul>
         </div>
     </div>
-</section>
+</div>
 
-<!-- Stats Section -->
-<section class="container" style="margin-top: 3rem; margin-bottom: 3rem;">
-    <div class="card" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white;">
-        <div class="grid grid-3 text-center">
-            <div>
-                <h2 style="font-size: 3rem; margin-bottom: 0.5rem; color: white;">🎯</h2>
-                <h3 style="color: white;">Simple</h3>
-                <p style="color: rgba(255, 255, 255, 0.9);">Easy to use interface for everyone</p>
-            </div>
-            <div>
-                <h2 style="font-size: 3rem; margin-bottom: 0.5rem; color: white;">⚡</h2>
-                <h3 style="color: white;">Fast</h3>
-                <p style="color: rgba(255, 255, 255, 0.9);">Quick access with QR codes</p>
-            </div>
-            <div>
-                <h2 style="font-size: 3rem; margin-bottom: 0.5rem; color: white;">🔐</h2>
-                <h3 style="color: white;">Secure</h3>
-                <p style="color: rgba(255, 255, 255, 0.9);">Protected data with authentication</p>
-            </div>
-        </div>
+<!-- Call to Action Banner -->
+{% if not session.get('user_id') %}
+<div class="bento-grid" style="margin-bottom: 3.5rem;">
+    <div class="bento-card glass-liquid col-12 text-center" style="padding: 3rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; align-items: center;">
+        <h2 style="font-size: 2rem; color: var(--text-primary); margin: 0;">Establish Your Portal Today</h2>
+        <p style="font-size: 1.1rem; color: var(--text-secondary); max-width: 500px; margin: 0 auto;">Join the modern network of hostel managers and tenants today.</p>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary clay-btn" style="padding: 0.8rem 2.5rem; font-size: 1rem; font-weight: 600; text-decoration: none; margin-top: 0.5rem;">
+            🚀 Register Tenant Profile
+        </a>
     </div>
-</section>
-
-<!-- CTA Section -->
-{% if not session.get('resident_id') and not session.get('is_admin') %}
-<section class="container text-center" style="margin-bottom: 3rem;">
-    <div class="card">
-        <h2>Ready to Get Started?</h2>
-        <p style="font-size: 1.125rem; margin-bottom: 2rem;">Join hundreds of residents already using our system</p>
-        <a href="{{ url_for('register') }}" class="btn btn-lg btn-primary">Register Now - It's Free!</a>
-    </div>
-</section>
+</div>
 {% endif %}
 {% endblock %}
