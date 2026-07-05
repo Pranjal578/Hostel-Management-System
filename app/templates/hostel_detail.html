@@ -39,9 +39,11 @@
                 </div>
                 <div class="col-12" style="border-top: 1px dashed var(--glass-border); padding-top: 1.25rem; margin-top: 0.5rem;">
                     <span style="color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; font-weight: 600;">Hostel Owner / Manager</span>
-                    <p style="font-size: 1.15rem; font-weight: 600; color: var(--text-primary); margin: 0.25rem 0 0 0; display: flex; align-items: center; gap: 0.5rem;">
-                        👤 {{ hostel.owner.email }}
+                    <p style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary); margin: 0.25rem 0 0.25rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                        👤 {{ hostel.owner.full_name or 'N/A' }}
                     </p>
+                    <span style="font-size: 0.9rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">📞 Phone: {{ hostel.owner.phone or 'N/A' }}</span>
+                    <span style="font-size: 0.9rem; color: var(--text-secondary); display: block;">📧 Email: {{ hostel.owner.email }}</span>
                 </div>
             </div>
         </div>

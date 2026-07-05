@@ -56,6 +56,12 @@ def create_owner():
     email = request.form.get('email', '').strip()
     password = request.form.get('password')
     confirm_password = request.form.get('confirm_password')
+    full_name = request.form.get('full_name', '').strip()
+    phone = request.form.get('phone', '').strip()
+
+    if not full_name or not phone:
+        flash('Full name and phone number are required.', 'danger')
+        return redirect(url_for('admin.owners_list'))
 
     if password != confirm_password:
         flash('Passwords do not match.', 'danger')
@@ -66,7 +72,7 @@ def create_owner():
         flash('Email is already registered.', 'danger')
         return redirect(url_for('admin.owners_list'))
 
-    new_owner = User(email=email, role='HostelOwner')
+    new_owner = User(email=email, role='HostelOwner', full_name=full_name, phone=phone)
     new_owner.set_password(password)
     db.session.add(new_owner)
     db.session.commit()

@@ -15,7 +15,7 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             
             <!-- Segment 1: Hostel & Allocation -->
-            <h3 style="color: var(--primary); font-size: 1.25rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-bottom: 1.5rem; margin-top: 1rem;">1. Room Allocation</h3>
+            <h3 style="color: var(--primary); font-size: 1.25rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem; margin-bottom: 1.5rem; margin-top: 1rem;">1. Room Allocation & Pricing</h3>
             
             <div class="bento-grid" style="gap: 1.25rem;">
                 <div class="form-group col-6">
@@ -25,6 +25,14 @@
                 <div class="form-group col-6">
                     <label class="form-label" for="date_of_joining">Date of Joining *</label>
                     <input type="date" class="form-control" id="date_of_joining" name="date_of_joining" required value="{{ request.form.get('date_of_joining', resident.date_of_joining.strftime('%Y-%m-%d')) }}">
+                </div>
+                <div class="form-group col-6">
+                    <label class="form-label" for="rent">Monthly Rent (₹) *</label>
+                    <input type="number" step="0.01" class="form-control" id="rent" name="rent" required placeholder="e.g. 8000.00" value="{{ resident.rent or 0.0 }}">
+                </div>
+                <div class="form-group col-6">
+                    <label class="form-label" for="electricity_bill">Est. Electricity Bill (₹) *</label>
+                    <input type="number" step="0.01" class="form-control" id="electricity_bill" name="electricity_bill" required placeholder="e.g. 1500.00" value="{{ resident.electricity_bill or 0.0 }}">
                 </div>
             </div>
 

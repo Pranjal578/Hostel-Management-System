@@ -10,6 +10,18 @@ from app.utils.email_sender import send_payment_submitted_email
 
 resident_bp = Blueprint('resident', __name__)
 
+
+@resident_bp.before_request
+def check_resident_approval():
+    """Ensure pending residents only see the pending approval page"""
+    if 'user_id' in session and session.get('user_role') == 'Resident':
+        resident = Resident.query.filter_by(user_id=session['user_id']).first()
+        if resident and resident.status == 'Pending':
+            # Allow logout and static files
+            if request.endpoint and not request.endpoint.endswith('logout') and not request.endpoint.endswith('static') and 'settings' not in request.endpoint:
+                return render_template('pending_approval.html', resident=resident)
+
+
 @resident_bp.route('/dashboard')
 @role_required('Resident')
 def dashboard():

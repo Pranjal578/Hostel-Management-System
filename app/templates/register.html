@@ -23,29 +23,29 @@
                     <input type="email" class="form-control tactile-inset" id="email" name="email" required placeholder="name@domain.com" value="{% if not clear_email %}{{ request.form.get('email', '') }}{% endif %}">
                 </div>
                 <div class="form-group col-6">
-                    <label class="form-label" for="hostel_code">Hostel Code <span style="color:var(--primary)">*</span></label>
+                    <label class="form-label" for="hostel_code">Hostel Unique Code *</label>
                     <input type="text" class="form-control tactile-inset" id="hostel_code" name="hostel_code"
                         placeholder="e.g. HOS-2026-001"
                         value="{{ hostel_code or request.form.get('hostel_code', '') }}"
-                        style="text-transform:uppercase; letter-spacing:0.05em;"
+                        required
+                        style="text-transform:uppercase; letter-spacing:0.05em; {% if prefilled_hostel %}opacity: 0.85; background: rgba(255,255,255,0.05);{% endif %}"
                         oninput="this.value=this.value.toUpperCase()"
+                        {% if prefilled_hostel %}readonly{% endif %}
                     >
-                    <small style="color:var(--text-secondary); font-size:0.78rem; margin-top:4px; display:block;">
-                        Enter the code your hostel owner shared with you.
-                        <a href="#" onclick="document.getElementById('hostel-fallback').style.display='block'; return false;"
-                           style="color:var(--primary); text-decoration:none;">Don't have a code? Pick from list.</a>
-                    </small>
-                </div>
-                <div class="form-group col-6" id="hostel-fallback" style="display:none;">
-                    <label class="form-label" for="hostel_id">Or Select Hostel</label>
-                    <select class="form-control tactile-inset" id="hostel_id" name="hostel_id">
-                        <option value="">-- Choose Hostel --</option>
-                        {% for h in hostels %}
-                            <option value="{{ h.id }}" {% if request.form.get('hostel_id')|string == h.id|string %}selected{% endif %}>
-                                {{ h.hostel_name }}{% if h.hostel_code %} [{{ h.hostel_code }}]{% endif %} — {{ h.location }}
-                            </option>
-                        {% endfor %}
-                    </select>
+                    {% if prefilled_hostel %}
+                        <div style="margin-top: 6px; font-size: 0.82rem; color: var(--success); font-weight: 600; display: flex; align-items: center; gap: 4px;">
+                            ✨ Autofilled: {{ prefilled_hostel.hostel_name }}
+                        </div>
+                        <script>
+                            window.addEventListener('DOMContentLoaded', (event) => {
+                                alert("Registering for {{ prefilled_hostel.hostel_name }}\n\nUnique ID Code: {{ prefilled_hostel.hostel_code }} has been automatically filled!");
+                            });
+                        </script>
+                    {% else %}
+                        <small style="color:var(--text-secondary); font-size:0.78rem; margin-top:4px; display:block;">
+                            Enter the unique registration code provided by your hostel.
+                        </small>
+                    {% endif %}
                 </div>
                 <div class="form-group col-6">
                     <label class="form-label" for="password">Password *</label>
@@ -85,10 +85,6 @@
                 <div class="form-group col-6">
                     <label class="form-label" for="aadhar_id">Aadhar ID *</label>
                     <input type="text" class="form-control tactile-inset" id="aadhar_id" name="aadhar_id" placeholder="XXXX-XXXX-XXXX" maxlength="14" value="{% if not clear_aadhar %}{{ request.form.get('aadhar_id', '') }}{% endif %}">
-                </div>
-                <div class="form-group col-6">
-                    <label class="form-label" for="room_number">Desired Room Number *</label>
-                    <input type="text" class="form-control tactile-inset" id="room_number" name="room_number" required placeholder="e.g. 101, B-42" value="{% if not clear_room %}{{ request.form.get('room_number', '') }}{% endif %}">
                 </div>
                 <div class="form-group col-6">
                     <label class="form-label" for="date_of_joining">Date of Joining *</label>

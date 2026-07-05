@@ -16,15 +16,15 @@
             <div style="background: rgba(255, 255, 255, 0.01); border: 1px solid var(--glass-border); padding: 1.25rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.95rem;">
                     <span style="color: var(--text-secondary);">Monthly Base Rent:</span>
-                    <span style="font-weight: 600; color: var(--text-primary);">₹{{ resident.hostel.rent or '0.00' }}</span>
+                    <span style="font-weight: 600; color: var(--text-primary);">₹{{ resident.rent or '0.00' }}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; font-size: 0.95rem;">
                     <span style="color: var(--text-secondary);">Electricity Bill:</span>
-                    <span style="font-weight: 600; color: var(--text-primary);">₹{{ resident.hostel.electricity_bill or '0.00' }}</span>
+                    <span style="font-weight: 600; color: var(--text-primary);">₹{{ resident.electricity_bill or '0.00' }}</span>
                 </div>
                 <div style="border-top: 1px dashed var(--glass-border); padding-top: 0.75rem; display: flex; justify-content: space-between; font-size: 1.1rem; font-weight: 700;">
                     <span style="color: var(--primary);">Total Due:</span>
-                    <span style="color: var(--success);">₹{{ (resident.hostel.rent or 0) + (resident.hostel.electricity_bill or 0) }}</span>
+                    <span style="color: var(--success);">₹{{ (resident.rent or 0) + (resident.electricity_bill or 0) }}</span>
                 </div>
             </div>
             
@@ -51,7 +51,7 @@
             <div class="bento-grid" style="gap: 1rem; margin: 0;">
                 <div class="form-group col-6">
                     <label class="form-label" for="amount">Paid Amount (₹) *</label>
-                    <input type="number" step="0.01" class="form-control tactile-inset" id="amount" name="amount" required placeholder="e.g. 9500.00" value="{{ (resident.hostel.rent or 0) + (resident.hostel.electricity_bill or 0) }}">
+                    <input type="number" step="0.01" class="form-control tactile-inset" id="amount" name="amount" required placeholder="e.g. 9500.00" value="{{ (resident.rent or 0) + (resident.electricity_bill or 0) }}">
                 </div>
                 <div class="form-group col-6">
                     <label class="form-label" for="payment_date">Payment Date *</label>

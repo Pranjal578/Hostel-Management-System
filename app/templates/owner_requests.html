@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Resident Requests - Owner Portal{% endblock %}
+
+{% block content %}
+<div style="margin-top: 1rem; margin-bottom: 2rem;">
+    <h1 style="font-size: 2.2rem; margin-bottom: 0.25rem;">📩 Pending Allocation Requests</h1>
+    <p style="color: var(--text-secondary); margin: 0;">Review new resident registrations, allot room numbers, and configure individual rent/electricity billing.</p>
+</div>
+
+<div class="bento-grid">
+    <div class="bento-card glass-minimal col-12">
+        <h3 style="color: var(--primary); margin-bottom: 1.5rem;">📋 New Resident Applications</h3>
+        
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            {% for r in pending_residents %}
+            <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+                <!-- Header: Basic Profile info -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; border-bottom: 1px dashed var(--glass-border); padding-bottom: 1rem;">
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <img src="/static/images/default_profile.png" alt="Default Profile" style="height: 50px; width: 50px; border-radius: 50%; border: 1px solid var(--glass-border);">
+                        <div>
+                            <h4 style="margin: 0; font-size: 1.25rem; color: var(--text-primary);">{{ r.full_name }}</h4>
+                            <span style="font-size: 0.85rem; color: var(--text-secondary);">🏢 Selected Hostel: <strong>{{ r.hostel.hostel_name }}</strong></span>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="badge badge-pending">Pending Review</span>
+                        <span style="display: block; font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">Applied: {{ r.created_at.strftime('%b %d, %Y') }}</span>
+                    </div>
+                </div>
+
+                <!-- Personal Info Details Grid -->
+                <div class="bento-grid" style="gap: 1rem; margin: 0; padding: 0;">
+                    <div class="col-3">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Email Address</span>
+                        <p style="margin: 0; font-weight: 500; font-size: 0.9rem;">{{ r.user.email }}</p>
+                    </div>
+                    <div class="col-3">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Phone Number</span>
+                        <p style="margin: 0; font-weight: 500; font-size: 0.9rem;">{{ r.phone_decrypted }}</p>
+                    </div>
+                    <div class="col-3">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Date of Birth</span>
+                        <p style="margin: 0; font-weight: 500; font-size: 0.9rem;">{{ r.date_of_birth.strftime('%b %d, %Y') }} ({{ r.gender }})</p>
+                    </div>
+                    <div class="col-3">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Date of Joining</span>
+                        <p style="margin: 0; font-weight: 500; font-size: 0.9rem;">{{ r.date_of_joining.strftime('%b %d, %Y') }}</p>
+                    </div>
+                    <div class="col-6">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Permanent Address</span>
+                        <p style="margin: 0; font-weight: 500; font-size: 0.9rem; line-height: 1.4;">{{ r.permanent_address_decrypted }}, {{ r.city }}, {{ r.state }} - {{ r.pincode }}</p>
+                    </div>
+                    <div class="col-3">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Aadhar ID</span>
+                        <p style="margin: 0; font-weight: 500; font-size: 0.9rem;">{{ r.aadhar_id_decrypted or 'Not Provided' }}</p>
+                    </div>
+                    <div class="col-3">
+                        <span style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;">Emergency Contact</span>
+                        <p style="margin: 0; font-weight: 500; font-size: 0.9rem;">{{ r.emergency_contact_name }} ({{ r.emergency_contact_relation }}): {{ r.emergency_contact_phone }}</p>
+                    </div>
+                </div>
+
+                <!-- Approval Allocation Form -->
+                <div style="background: rgba(255, 255, 255, 0.01); border: 1px dashed var(--glass-border); border-radius: var(--radius-sm); padding: 1.25rem; margin-top: 0.5rem;">
+                    <h5 style="color: var(--accent); font-size: 0.95rem; margin-bottom: 1rem;">🏗️ Allot Room & Configure Billing</h5>
+                    
+                    <form method="POST" action="{{ url_for('owner.approve_request', resident_id=r.id) }}" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        
+                        <div style="flex: 1; min-width: 140px;">
+                            <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.35rem;">Room Assignment *</label>
+                            <input type="text" name="room_number" class="form-control tactile-inset" style="padding: 0.5rem 0.75rem;" placeholder="e.g. 101-A, B-12" required>
+                        </div>
+                        <div style="flex: 1; min-width: 140px;">
+                            <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.35rem;">Individual Rent (₹) *</label>
+                            <input type="number" step="0.01" name="rent" class="form-control tactile-inset" style="padding: 0.5rem 0.75rem;" placeholder="e.g. 8000.00" required>
+                        </div>
+                        <div style="flex: 1; min-width: 140px;">
+                            <label class="form-label" style="font-size: 0.75rem; margin-bottom: 0.35rem;">Electricity Bill (₹) *</label>
+                            <input type="number" step="0.01" name="electricity_bill" class="form-control tactile-inset" style="padding: 0.5rem 0.75rem;" placeholder="e.g. 1500.00" required>
+                        </div>
+                        
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button type="submit" class="btn btn-success clay-btn" style="height: 38px; display: inline-flex; align-items: center; padding: 0 1.25rem; font-weight: 600;">Approve & Allot</button>
+                    </form>
+                    
+                    <form method="POST" action="{{ url_for('owner.reject_request', resident_id=r.id) }}" onsubmit="return confirm('Are you sure you want to reject this request? The account will be deleted.');" style="display: inline-block;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger" style="height: 38px; display: inline-flex; align-items: center; padding: 0 1.25rem;">Reject</button>
+                    </form>
+                        </div>
+                </div>
+            </div>
+            {% else %}
+            <div style="text-align: center; color: var(--text-muted); padding: 3rem 0;">
+                <span style="font-size: 3rem; display: block; margin-bottom: 1rem;">📬</span>
+                <h3>No pending registration requests</h3>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 0.25rem;">New resident applications for your hostels will show up here.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

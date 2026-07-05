@@ -22,6 +22,8 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(20), nullable=False, default='Resident')  # 'SuperAdmin', 'HostelOwner', 'Resident'
+    full_name = db.Column(db.String(100), nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
     
     # OTP Configuration
     otp_enabled = db.Column(db.Boolean, default=False)
@@ -148,8 +150,11 @@ class Resident(db.Model):
     pincode = db.Column(db.String(10), nullable=False)
     
     # Hostel Information
-    room_number = db.Column(db.String(10), nullable=False)  # Unique per hostel, handled in validation
+    room_number = db.Column(db.String(10), nullable=True)  # Unique per hostel, handled in validation
     date_of_joining = db.Column(db.Date, nullable=False)
+    rent = db.Column(db.Float, nullable=True, default=0.0)
+    electricity_bill = db.Column(db.Float, nullable=True, default=0.0)
+    status = db.Column(db.String(20), nullable=False, default='Pending')  # 'Pending', 'Active', 'Rejected'
     
     # Emergency Contact
     emergency_contact_name = db.Column(db.String(100), nullable=False)

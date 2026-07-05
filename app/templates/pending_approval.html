@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Pending Approval - ROOMMET{% endblock %}
+
+{% block content %}
+<div class="bento-grid" style="justify-content: center; margin-top: 3rem; margin-bottom: 3rem;">
+    <div class="bento-card clay-card col-8" style="max-width: 600px; padding: 3rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1.5rem;">
+        <div style="font-size: 4rem; filter: drop-shadow(0 0 15px var(--warning)); animation: float 3s ease-in-out infinite;">⏳</div>
+        
+        <h2 style="font-size: 2.2rem; color: var(--text-primary); margin: 0;">Allocation Pending</h2>
+        
+        <p style="color: var(--text-secondary); font-size: 1.1rem; line-height: 1.6; margin: 0;">
+            Thank you for registering on <strong>ROOMMET</strong>! Your profile has been created, and your request has been forwarded to the property manager.
+        </p>
+
+        <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--glass-border); border-radius: var(--radius-md); padding: 1.5rem; width: 100%; text-align: left; margin: 0.5rem 0;">
+            <h4 style="color: var(--primary); font-size: 1rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 0.5rem;">Submitted Details</h4>
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.95rem;">
+                <div><span style="color: var(--text-muted);">Name:</span> <strong style="color: var(--text-primary);">{{ resident.full_name }}</strong></div>
+                <div><span style="color: var(--text-muted);">Hostel:</span> <strong style="color: var(--text-primary);">{{ resident.hostel.hostel_name }}</strong></div>
+                <div><span style="color: var(--text-muted);">Contact Phone:</span> <span style="color: var(--text-secondary);">{{ resident.phone_decrypted }}</span></div>
+                <div><span style="color: var(--text-muted);">Email:</span> <span style="color: var(--text-secondary);">{{ resident.user.email }}</span></div>
+            </div>
+        </div>
+
+        <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin: 0;">
+            Please contact your hostel manager directly to complete your room assignment, rent allotment, and billing configuration. You will gain access to your dashboard once approved.
+        </p>
+
+        <div style="display: flex; gap: 1rem; width: 100%; margin-top: 1rem;">
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-danger clay-btn" style="flex: 1; text-decoration: none; display: flex; align-items: center; justify-content: center; height: 46px; font-weight: 600;">Log Out</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

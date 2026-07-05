@@ -44,7 +44,7 @@ def generate_hostel_qr(hostel, base_url=None):
     qr_dir = os.path.join(BASE_DIR, 'static', 'qr')
     os.makedirs(qr_dir, exist_ok=True)
 
-    view_url = f"{base_url}/hostel/view/{hostel.id}"
+    view_url = f"{base_url}/register?hostel_code={hostel.hostel_code}&hostel_id={hostel.id}"
 
     qr = qrcode.QRCode(
         version=None,

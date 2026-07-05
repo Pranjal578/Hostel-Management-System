@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discover Hostels — Hostel Management System</title>
-    <meta name="description" content="Browse all registered hostels, view facilities, available rooms and get the QR code to register.">
+    <title>Discover Properties — ROOMMET</title>
+    <meta name="description" content="Browse all registered properties on ROOMMET, view details, and get code info.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -88,11 +88,11 @@
 </head>
 <body>
 <nav class="nav">
-    <a href="/" class="nav-brand">🏠 HostelHub</a>
+    <a href="/" class="nav-brand">🏠 ROOMMET</a>
     <div class="nav-links">
         <a href="/login" class="nav-link">Login</a>
         <a href="/register/owner" class="nav-link">Register as Owner</a>
-        <a href="/register" class="btn-p">Find a Hostel →</a>
+        <a href="/register" class="btn-p">Register Resident →</a>
     </div>
 </nav>
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -129,8 +129,13 @@
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
                 {{ h.location }}
             </div>
-            <div style="font-size: 0.85rem; color: var(--muted); display: flex; align-items: center; gap: 0.25rem;">
-                👤 Manager: <strong style="color: var(--text);">{{ h.owner.email }}</strong>
+            <div style="font-size: 0.82rem; color: var(--muted); display: flex; flex-direction: column; gap: 4px; border-bottom: 1px dashed var(--border); padding-bottom: 8px; margin-bottom: 4px;">
+                <div style="display: flex; align-items: center; gap: 0.25rem;">
+                    👤 Owner: <strong style="color: var(--text);">{{ h.owner.full_name or 'N/A' }}</strong>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.8rem;">
+                    📞 Contact: <strong style="color: var(--text);">{{ h.owner.phone or 'N/A' }}</strong> | {{ h.owner.email }}
+                </div>
             </div>
             <div>
                 <div class="rh">

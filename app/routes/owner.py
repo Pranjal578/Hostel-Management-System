@@ -128,19 +128,20 @@ def delete_hostel(hostel_id):
 @owner_bp.route('/residents', methods=['GET'])
 @role_required('HostelOwner')
 def residents_list():
-    """List all residents in any of the owner's hostels"""
+    """List all active residents in any of the owner's hostels"""
     owner_id = session['user_id']
     hostels = Hostel.query.filter_by(owner_id=owner_id).all()
     hostel_ids = [h.id for h in hostels]
-    residents = Resident.query.filter(Resident.hostel_id.in_(hostel_ids)).all() if hostel_ids else []
+    residents = Resident.query.filter(Resident.hostel_id.in_(hostel_ids), Resident.status == 'Active').all() if hostel_ids else []
 
     # Search filter logic
     search_query = request.args.get('search', '').strip()
     if search_query:
         filtered_residents = []
         for r in residents:
+            room_str = r.room_number or ''
             if (search_query.lower() in r.full_name.lower() or 
-                search_query.lower() in r.room_number.lower() or
+                search_query.lower() in room_str.lower() or
                 search_query in r.phone_decrypted):
                 filtered_residents.append(r)
         residents = filtered_residents
@@ -382,6 +383,8 @@ def edit_resident(resident_id):
             phone = request.form.get('phone', '').strip()
             room_number = request.form.get('room_number', '').strip()
             aadhar_raw = request.form.get('aadhar_id', '').replace('-', '')
+            rent = float(request.form.get('rent', 0.0) or 0.0)
+            electricity_bill = float(request.form.get('electricity_bill', 0.0) or 0.0)
             
             existing_user = User.query.filter_by(email=email).first()
             if existing_user and existing_user.id != resident.user_id:
@@ -395,7 +398,7 @@ def edit_resident(resident_id):
                     return render_template('edit_resident.html', resident=resident, clear_phone=True)
                     
             existing_room = Resident.query.filter_by(hostel_id=resident.hostel_id, room_number=room_number).first()
-            if existing_room and existing_room.id != resident.id:
+            if existing_room and existing_room.id != resident.id and room_number != 'Pending':
                 flash(f'Room {room_number} is already occupied.', 'danger')
                 return render_template('edit_resident.html', resident=resident, clear_room=True)
                 
@@ -416,6 +419,8 @@ def edit_resident(resident_id):
             resident.date_of_birth = dob
             resident.date_of_joining = doj
             resident.room_number = room_number
+            resident.rent = rent
+            resident.electricity_bill = electricity_bill
             resident.phone_decrypted = phone
             resident.permanent_address_decrypted = request.form.get('permanent_address', '').strip()
             if aadhar_formatted:
@@ -503,3 +508,90 @@ def delete_notice(notice_id):
     log_security_action(owner_id, f"Deleted notice ID {notice_id}")
     flash('Notice deleted.', 'success')
     return redirect(url_for('owner.notices_list'))
+
+
+@owner_bp.route('/requests', methods=['GET'])
+@role_required('HostelOwner')
+def requests_list():
+    """Show pending resident allocation requests for this Owner's hostels"""
+    owner_id = session['user_id']
+    hostels = Hostel.query.filter_by(owner_id=owner_id).all()
+    hostel_ids = [h.id for h in hostels]
+    
+    pending_residents = Resident.query.filter(
+        Resident.hostel_id.in_(hostel_ids),
+        Resident.status == 'Pending'
+    ).order_by(Resident.created_at.desc()).all() if hostel_ids else []
+    
+    return render_template('owner_requests.html', pending_residents=pending_residents, hostels=hostels)
+
+
+@owner_bp.route('/request/approve/<int:resident_id>', methods=['POST'])
+@role_required('HostelOwner')
+def approve_request(resident_id):
+    """Approve resident registration, allotting room number, rent, and electricity bill"""
+    owner_id = session['user_id']
+    hostels = Hostel.query.filter_by(owner_id=owner_id).all()
+    hostel_ids = [h.id for h in hostels]
+    
+    resident = Resident.query.filter(
+        Resident.id == resident_id,
+        Resident.hostel_id.in_(hostel_ids)
+    ).first_or_404()
+    
+    room_number = request.form.get('room_number', '').strip()
+    rent_val = request.form.get('rent')
+    elec_val = request.form.get('electricity_bill')
+    
+    if not room_number or not rent_val or not elec_val:
+        flash('Room Number, Rent, and Electricity Bill are required to approve.', 'warning')
+        return redirect(url_for('owner.requests_list'))
+        
+    try:
+        rent = float(rent_val)
+        electricity_bill = float(elec_val)
+    except ValueError:
+        flash('Invalid pricing numbers submitted.', 'danger')
+        return redirect(url_for('owner.requests_list'))
+        
+    # Check if room is already occupied in this hostel
+    existing_room = Resident.query.filter_by(hostel_id=resident.hostel_id, room_number=room_number, status='Active').first()
+    if existing_room:
+        flash(f'Room {room_number} is already occupied by an active resident.', 'danger')
+        return redirect(url_for('owner.requests_list'))
+        
+    resident.room_number = room_number
+    resident.rent = rent
+    resident.electricity_bill = electricity_bill
+    resident.status = 'Active'
+    
+    db.session.commit()
+    log_security_action(owner_id, f"Approved registration & allocated Room {room_number} to Resident '{resident.full_name}'")
+    flash(f"Resident '{resident.full_name}' has been successfully approved and allocated Room {room_number}!", 'success')
+    return redirect(url_for('owner.requests_list'))
+
+
+@owner_bp.route('/request/reject/<int:resident_id>', methods=['POST'])
+@role_required('HostelOwner')
+def reject_request(resident_id):
+    """Reject and delete a resident's registration request"""
+    owner_id = session['user_id']
+    hostels = Hostel.query.filter_by(owner_id=owner_id).all()
+    hostel_ids = [h.id for h in hostels]
+    
+    resident = Resident.query.filter(
+        Resident.id == resident_id,
+        Resident.hostel_id.in_(hostel_ids)
+    ).first_or_404()
+    
+    resident_name = resident.full_name
+    user = User.query.get(resident.user_id)
+    
+    db.session.delete(resident)
+    if user:
+        db.session.delete(user)
+    db.session.commit()
+    
+    log_security_action(owner_id, f"Rejected registration request from Resident '{resident_name}'")
+    flash(f"Registration request from '{resident_name}' has been rejected.", 'success')
+    return redirect(url_for('owner.requests_list'))

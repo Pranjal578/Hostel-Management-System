@@ -83,6 +83,51 @@ def create_app(config_name=None):
             from app.models.db import Payment, Hostel
             from app.utils.qr_generator import generate_hostel_qr
             
+            # Self-heal users table columns if missing
+            from sqlalchemy import text
+            with db.engine.connect() as conn:
+                try:
+                    conn.execute(text("SELECT full_name, phone FROM users LIMIT 1"))
+                except Exception:
+                    print("[INFO] Adding full_name and phone columns to users table...")
+                    try:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN full_name VARCHAR(100)"))
+                    except Exception as alt_err:
+                        pass
+                    try:
+                        conn.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(20)"))
+                    except Exception as alt_err:
+                        pass
+                    try:
+                        conn.commit()
+                    except Exception:
+                        pass
+                    print("[OK] Altered users table successfully.")
+            
+            # Self-heal residents table columns if missing
+            with db.engine.connect() as conn:
+                try:
+                    conn.execute(text("SELECT rent, electricity_bill, status FROM residents LIMIT 1"))
+                except Exception:
+                    print("[INFO] Adding rent, electricity_bill, and status columns to residents table...")
+                    try:
+                        conn.execute(text("ALTER TABLE residents ADD COLUMN rent FLOAT DEFAULT 0.0"))
+                    except Exception as alt_err:
+                        pass
+                    try:
+                        conn.execute(text("ALTER TABLE residents ADD COLUMN electricity_bill FLOAT DEFAULT 0.0"))
+                    except Exception as alt_err:
+                        pass
+                    try:
+                        conn.execute(text("ALTER TABLE residents ADD COLUMN status VARCHAR(20) DEFAULT 'Pending'"))
+                    except Exception as alt_err:
+                        pass
+                    try:
+                        conn.commit()
+                    except Exception:
+                        pass
+                    print("[OK] Altered residents table successfully.")
+            
             old_payments = Payment.query.filter(Payment.screenshot_path.like('/static/uploads/payments/%')).all()
             for p in old_payments:
                 filename = p.screenshot_path.split('/')[-1]
@@ -102,9 +147,8 @@ def create_app(config_name=None):
                     seq = len(existing_codes) + 1
                     h.hostel_code = f"HOS-{year}-{seq:03d}"
                     modified = True
-                if not h.hostel_qr_code or not os.path.exists(os.path.join(app.root_path, h.hostel_qr_code.lstrip('/'))):
-                    h.hostel_qr_code = generate_hostel_qr(h)
-                    modified = True
+                h.hostel_qr_code = generate_hostel_qr(h)
+                modified = True
                 if modified:
                     db.session.commit()
                     print(f"[OK] Self-healed code/QR for hostel '{h.hostel_name}'.")

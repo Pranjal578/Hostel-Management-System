@@ -1,10 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register as Hostel Owner</title>
-    <meta name="description" content="Create a Hostel Owner account to manage your hostel on HostelHub.">
+    <title>Register as Owner — ROOMMET</title>
+    <meta name="description" content="Create an Owner account to manage your property on ROOMMET.">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -20,7 +18,7 @@
         .flash-warning{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#fbbf24}
         label{display:block;font-size:.82rem;font-weight:600;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em}
         .field{margin-bottom:18px}
-        input[type=email],input[type=password]{width:100%;background:#0f0f1a;border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:12px 14px;color:#e2e8f0;font-size:.95rem;font-family:'Inter',sans-serif;outline:none;transition:all .2s}
+        input[type=email],input[type=password],input[type=text]{width:100%;background:#0f0f1a;border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:12px 14px;color:#e2e8f0;font-size:.95rem;font-family:'Inter',sans-serif;outline:none;transition:all .2s}
         input:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.25)}
         .hint{font-size:.78rem;color:#64748b;margin-top:5px}
         .btn{width:100%;padding:13px;border-radius:12px;font-size:.95rem;font-weight:700;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;cursor:pointer;transition:all .2s;margin-top:6px;font-family:'Inter',sans-serif}
@@ -50,6 +48,14 @@
     </div>
     <form method="POST" action="/register/owner" id="owner-reg-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field">
+            <label for="full_name">Hostel Owner Name</label>
+            <input type="text" id="full_name" name="full_name" required placeholder="e.g. Ramesh Kumar" autocomplete="name">
+        </div>
+        <div class="field">
+            <label for="phone">Owner Contact Phone</label>
+            <input type="text" id="phone" name="phone" required placeholder="e.g. +91 9876543210" autocomplete="tel">
+        </div>
         <div class="field">
             <label for="email">Business / Work Email</label>
             <input type="email" id="email" name="email" required placeholder="owner@example.com" autocomplete="email">

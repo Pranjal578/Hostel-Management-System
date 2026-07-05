@@ -194,59 +194,65 @@ def register():
 
     hostels = Hostel.query.all()
     hostel_code = request.args.get('hostel_code', '').strip().upper()
+    hostel_id = request.args.get('hostel_id', '').strip()
+    if hostel_id and not hostel_code:
+        hostel_obj = Hostel.query.get(hostel_id)
+        if hostel_obj:
+            hostel_code = hostel_obj.hostel_code
+
+    prefilled_hostel = None
+    if hostel_code:
+        prefilled_hostel = Hostel.query.filter_by(hostel_code=hostel_code).first()
+
+    def render_register_form(**kwargs):
+        return render_template(
+            'register.html',
+            hostels=hostels,
+            hostel_code=hostel_code,
+            prefilled_hostel=prefilled_hostel,
+            **kwargs
+        )
 
     if request.method == 'POST':
         hostel_code = request.form.get('hostel_code', '').strip().upper()
+        # Re-fetch prefilled_hostel in case hostel_code was sent on post
+        if hostel_code:
+            prefilled_hostel = Hostel.query.filter_by(hostel_code=hostel_code).first()
+
         try:
             email = request.form.get('email', '').strip()
             phone = request.form.get('phone', '').strip()
-            room_number = request.form.get('room_number', '').strip()
-            hostel_id = request.form.get('hostel_id')
             password = request.form.get('password')
             confirm_password = request.form.get('confirm_password')
 
             # Basic Validations
+            if not hostel_code:
+                flash('Unique Hostel Code is required to register.', 'danger')
+                return render_register_form()
+
             if password != confirm_password:
                 flash('Passwords do not match.', 'danger')
-                return render_template('register.html', hostels=hostels, hostel_code=hostel_code)
+                return render_register_form()
 
             # Check if email is already taken
             existing_user = User.query.filter_by(email=email).first()
             if existing_user:
                 flash('Email is already registered.', 'danger')
-                return render_template('register.html', hostels=hostels, clear_email=True, hostel_code=hostel_code)
+                return render_register_form(clear_email=True)
 
-            # Resolve hostel — prefer hostel_code input, fallback to dropdown id
-            hostel_code_input = request.form.get('hostel_code', '').strip().upper()
-            hostel_id_input = request.form.get('hostel_id')
-            hostel = None
-            if hostel_code_input:
-                hostel = Hostel.query.filter_by(hostel_code=hostel_code_input).first()
-                if not hostel:
-                    flash(f'Hostel code "{hostel_code_input}" not found. Please check the code and try again.', 'danger')
-                    return render_template('register.html', hostels=hostels, hostel_code=hostel_code)
-                hostel_id = hostel.id
-            elif hostel_id_input:
-                hostel = Hostel.query.get(hostel_id_input)
-                hostel_id = hostel_id_input
-                if hostel:
-                    hostel_code = hostel.hostel_code
-            else:
-                flash('Please enter a Hostel Code or select a hostel.', 'warning')
-                return render_template('register.html', hostels=hostels, hostel_code=hostel_code)
-
-            # Check if room is already occupied in this specific hostel
-            existing_room = Resident.query.filter_by(hostel_id=hostel_id, room_number=room_number).first()
-            if existing_room:
-                flash(f'Room {room_number} is already occupied in this hostel.', 'danger')
-                return render_template('register.html', hostels=hostels, clear_room=True, hostel_code=hostel_code)
+            # Resolve hostel by unique code
+            hostel = Hostel.query.filter_by(hostel_code=hostel_code).first()
+            if not hostel:
+                flash(f'Unique Hostel Code "{hostel_code}" not found. Please verify the code and try again.', 'danger')
+                return render_register_form()
+            hostel_id = hostel.id
 
             # Check phone uniqueness
             all_residents = Resident.query.all()
             for r in all_residents:
                 if r.phone_decrypted == phone:
                     flash('Phone number is already registered.', 'danger')
-                    return render_template('register.html', hostels=hostels, clear_phone=True, hostel_code=hostel_code)
+                    return render_register_form(clear_phone=True)
 
             # Parse DOB and Joining Date
             dob = datetime.strptime(request.form['date_of_birth'], '%Y-%m-%d').date()
@@ -260,7 +266,7 @@ def register():
                     aadhar_formatted = f"{aadhar_raw[:4]}-{aadhar_raw[4:8]}-{aadhar_raw[8:12]}"
                 else:
                     flash('Aadhar ID must be exactly 12 digits.', 'warning')
-                    return render_template('register.html', hostels=hostels, clear_aadhar=True, hostel_code=hostel_code)
+                    return render_register_form(clear_aadhar=True)
 
             # Create User login entry
             user = User(email=email, role='Resident')
@@ -278,7 +284,9 @@ def register():
                 city=request.form['city'],
                 state=request.form['state'],
                 pincode=request.form['pincode'],
-                room_number=room_number,
+                room_number="Pending",
+                rent=0.0,
+                electricity_bill=0.0,
                 date_of_joining=doj,
                 emergency_contact_name=request.form['emergency_contact_name'],
                 emergency_contact_phone=request.form['emergency_contact_phone'],
@@ -312,7 +320,7 @@ def register():
             # Generate profile QR code
             generate_qr_code(resident.id)
             
-            log_security_action(user.id, f"Registered new resident account for Room {room_number}")
+            log_security_action(user.id, "Registered new resident account")
             flash('Registration successful! You can now login.', 'success')
             return redirect(url_for('auth.login'))
 
@@ -320,7 +328,7 @@ def register():
             db.session.rollback()
             flash(f'Registration failed: {str(e)}', 'danger')
 
-    return render_template('register.html', hostels=hostels, hostel_code=hostel_code)
+    return render_register_form()
 
 
 @auth_bp.route('/register/owner', methods=['GET', 'POST'])
@@ -334,9 +342,11 @@ def register_owner():
         email = request.form.get('email', '').strip()
         password = request.form.get('password')
         confirm_password = request.form.get('confirm_password')
+        full_name = request.form.get('full_name', '').strip()
+        phone = request.form.get('phone', '').strip()
 
-        if not email or not password:
-            flash('Email and password are required.', 'warning')
+        if not email or not password or not full_name or not phone:
+            flash('All fields are required.', 'warning')
             return render_template('owner_register.html')
 
         if password != confirm_password:
@@ -352,7 +362,7 @@ def register_owner():
             flash('This email is already registered.', 'danger')
             return render_template('owner_register.html')
 
-        owner = User(email=email, role='HostelOwner')
+        owner = User(email=email, role='HostelOwner', full_name=full_name, phone=phone)
         owner.set_password(password)
         db.session.add(owner)
         db.session.commit()
