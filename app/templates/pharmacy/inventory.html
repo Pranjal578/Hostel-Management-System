@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Inventory — {{ shop.shop_name }}{% endblock %}
+
+{% block content %}
+<div style="margin-top: 1rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 2rem; margin-bottom: 0.2rem;">💊 Medicine Inventory</h1>
+        <p style="color: var(--text-muted); margin: 0;">{{ shop.shop_name }} · {{ medicines|length }} items</p>
+    </div>
+    <a href="{{ url_for('pharmacy.add_medicine') }}" class="btn btn-primary tactile-outset">+ Add Medicine</a>
+</div>
+
+<div class="bento-card glass-minimal col-12">
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr>
+                    <th>Medicine</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Delivery</th>
+                    <th>Payment</th>
+                    <th>Status</th>
+                    <th>Rating</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for med in medicines %}
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div style="width: 44px; height: 44px; border-radius: 8px; overflow: hidden; background: rgba(0,0,0,0.3); flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                                <img src="{{ med.photo_url }}" alt="{{ med.name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.parentElement.innerHTML='💊'">
+                            </div>
+                            <div>
+                                <strong>{{ med.name }}</strong>
+                                {% if med.salt_composition %}<br><span style="font-size: 0.73rem; color: var(--text-muted);">{{ med.salt_composition[:50] }}{% if med.salt_composition|length > 50 %}...{% endif %}</span>{% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td>{{ med.category or '—' }}</td>
+                    <td><strong>₹{{ med.price }}</strong></td>
+                    <td>
+                        {% if med.stock_quantity == 0 %}
+                        <span style="color: var(--danger); font-weight: 700;">Out</span>
+                        {% elif med.stock_quantity <= 5 %}
+                        <span style="color: var(--warning); font-weight: 700;">{{ med.stock_quantity }}</span>
+                        {% else %}
+                        {{ med.stock_quantity }}
+                        {% endif %}
+                    </td>
+                    <td style="font-size: 0.8rem;">{{ med.delivery_options_list | join(', ') or '—' }}</td>
+                    <td style="font-size: 0.8rem;">{{ med.payment_options_list | join(', ') or '—' }}</td>
+                    <td>
+                        {% if med.is_available %}
+                        <span style="color: var(--success); font-size: 0.8rem; font-weight: 600;">● Live</span>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.8rem;">○ Hidden</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if med.average_rating > 0 %}
+                        <span style="color: #f59e0b;">★ {{ med.average_rating }}</span>
+                        {% else %}<span style="color: var(--text-muted);">—</span>{% endif %}
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <a href="{{ url_for('pharmacy.edit_medicine', medicine_id=med.id) }}" class="btn btn-secondary btn-sm">Edit</a>
+                            <form method="POST" action="{{ url_for('pharmacy.delete_medicine', medicine_id=med.id) }}" onsubmit="return confirm('Delete \'{{ med.name }}\'? This cannot be undone.')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 3rem 1rem;">
+                        No medicines in inventory yet. <a href="{{ url_for('pharmacy.add_medicine') }}" style="color: var(--primary);">Add your first medicine →</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Orders — {{ shop.shop_name }}{% endblock %}
+
+{% block content %}
+<div style="margin-top: 1rem; margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; margin-bottom: 0.2rem;">📦 Order Management</h1>
+    <p style="color: var(--text-muted); margin: 0;">{{ shop.shop_name }}</p>
+</div>
+
+<!-- Status filter tabs -->
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+    {% for status_opt in ['', 'Pending', 'Confirmed', 'Rejected'] %}
+    <a href="{{ url_for('pharmacy.orders', status=status_opt) }}"
+       style="padding: 6px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; text-decoration: none; border: 1px solid var(--glass-border);
+              {% if status_filter == status_opt %}background: var(--primary); color: #fff; border-color: var(--primary);{% else %}color: var(--text-secondary); background: transparent;{% endif %}">
+        {{ 'All' if not status_opt else status_opt }}
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Rejection Modal -->
+<div id="rejectModal" onclick="if(event.target.id==='rejectModal')this.style.display='none'" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); z-index: 2000; align-items: center; justify-content: center; padding: 20px;">
+    <div class="bento-card glass-liquid" style="max-width: 460px; width: 100%; padding: 2rem; position: relative;" onclick="event.stopPropagation()">
+        <button onclick="document.getElementById('rejectModal').style.display='none'" style="position: absolute; top: 1rem; right: 1rem; background: transparent; border: none; font-size: 1.4rem; color: var(--text-muted); cursor: pointer;">✕</button>
+        <h3 style="margin-top: 0; color: var(--danger);">Reject Order</h3>
+        <form id="rejectForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="action" value="reject">
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+                <label class="form-label">Reason for Rejection</label>
+                <textarea name="rejection_reason" rows="3" class="form-control tactile-inset" required placeholder="e.g. Out of stock, delivery not available in this area..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-danger" style="width: 100%;">Confirm Rejection</button>
+        </form>
+    </div>
+</div>
+
+<div class="bento-card glass-minimal col-12">
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead>
+                <tr><th>#</th><th>Medicine</th><th>Buyer</th><th>Qty</th><th>Amount</th><th>Delivery</th><th>Payment</th><th>Address</th><th>Date</th><th>Status</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td><code>{{ order.id }}</code></td>
+                    <td>
+                        <strong>{{ order.medicine.name }}</strong><br>
+                        <span style="font-size: 0.75rem; color: var(--text-muted);">₹{{ order.medicine.price }} / unit</span>
+                    </td>
+                    <td>
+                        <strong style="font-size: 0.85rem;">{{ order.buyer.full_name or order.buyer.email }}</strong><br>
+                        {% if order.contact_phone %}<span style="font-size: 0.75rem; color: var(--text-muted);">📞 {{ order.contact_phone }}</span>{% endif %}
+                    </td>
+                    <td>{{ order.quantity }}</td>
+                    <td><strong>₹{{ order.total_price }}</strong></td>
+                    <td style="font-size: 0.8rem;">
+                        {% if order.delivery_option == 'Express' %}⚡{% else %}📦{% endif %} {{ order.delivery_option }}
+                    </td>
+                    <td style="font-size: 0.8rem;">
+                        {% if order.payment_option == 'UPI' %}💳{% else %}💵{% endif %} {{ order.payment_option }}
+                        {% if order.receipt_path %}<br><a href="/static/images/medicines/{{ order.receipt_path }}" target="_blank" style="font-size: 0.72rem; color: var(--primary);">📎 Receipt</a>{% endif %}
+                    </td>
+                    <td style="font-size: 0.78rem; color: var(--text-muted); max-width: 140px;">{{ order.delivery_address or '—' }}</td>
+                    <td style="font-size: 0.78rem; white-space: nowrap;">{{ order.created_at.strftime('%b %d, %Y') }}</td>
+                    <td>
+                        {% if order.status == 'Confirmed' %}
+                        <span style="color: var(--success); font-size: 0.8rem; font-weight: 600;">✅ Confirmed</span><br>
+                        <span style="font-size: 0.72rem; color: var(--text-muted);">Status: {{ order.delivery_status }}</span>
+                        {% elif order.status == 'Rejected' %}
+                        <span style="color: var(--danger); font-size: 0.8rem;" title="{{ order.rejection_reason }}">❌ Rejected</span>
+                        {% else %}
+                        <span style="color: var(--warning); font-size: 0.8rem;">⏳ Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if order.status == 'Pending' %}
+                        <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                            <form method="POST" action="{{ url_for('pharmacy.confirm_order', order_id=order.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="action" value="confirm">
+                                <button type="submit" class="btn btn-success btn-sm">✅ Confirm</button>
+                            </form>
+                            <button class="btn btn-danger btn-sm" onclick="openRejectModal({{ order.id }})">❌ Reject</button>
+                        </div>
+                        {% elif order.status == 'Confirmed' %}
+                        <form method="POST" action="{{ url_for('pharmacy.update_delivery_status', order_id=order.id) }}" style="display: flex; gap: 0.3rem; align-items: center;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <select name="delivery_status" class="form-control tactile-inset" style="padding: 2px 6px; font-size: 0.78rem; width: 130px; height: auto;">
+                                {% for stage in order.DELIVERY_STAGES %}
+                                <option value="{{ stage }}" {% if order.delivery_status == stage %}selected{% endif %}>{{ stage }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm" style="padding: 3px 8px; font-size: 0.75rem;">Update</button>
+                        </form>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.78rem;">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="11" style="text-align: center; color: var(--text-muted); padding: 3rem 1rem;">No orders found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openRejectModal(orderId) {
+    document.getElementById('rejectForm').action = '/pharmacy/orders/' + orderId + '/confirm';
+    document.getElementById('rejectModal').style.display = 'flex';
+}
+document.addEventListener('keydown', e => { if(e.key === 'Escape') document.getElementById('rejectModal').style.display = 'none'; });
+</script>
+{% endblock %}

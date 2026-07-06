@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Shop Dashboard — {{ shop.shop_name }}{% endblock %}
+
+{% block content %}
+<div style="margin-top: 1rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 2rem; margin-bottom: 0.2rem;">🏥 {{ shop.shop_name }}</h1>
+        <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">
+            📍 {{ shop.location }}
+            {% if shop.verification_status == 'Approved' %}
+            <span style="background: rgba(16,185,129,.15); color: var(--success); border: 1px solid rgba(16,185,129,.3); font-size: 0.72rem; padding: 2px 8px; border-radius: 20px; margin-left: 0.5rem;">✅ Approved & Live</span>
+            {% elif shop.verification_status == 'Pending' %}
+            <span style="background: rgba(245,158,11,.15); color: var(--warning); border: 1px solid rgba(245,158,11,.3); font-size: 0.72rem; padding: 2px 8px; border-radius: 20px; margin-left: 0.5rem;">⏳ Pending Admin Approval</span>
+            {% else %}
+            <span style="background: rgba(239,68,68,.15); color: var(--danger); border: 1px solid rgba(239,68,68,.3); font-size: 0.72rem; padding: 2px 8px; border-radius: 20px; margin-left: 0.5rem;">❌ Rejected</span>
+            {% endif %}
+        </p>
+    </div>
+    <a href="{{ url_for('pharmacy.add_medicine') }}" class="btn btn-primary tactile-outset">+ Add Medicine</a>
+</div>
+
+<!-- Stats Bento Grid -->
+<div class="bento-grid" style="margin-bottom: 2rem;">
+    <div class="bento-card glass-liquid col-3" style="text-align: center; padding: 1.8rem 1rem;">
+        <div style="font-size: 2.2rem; margin-bottom: 0.4rem;">💊</div>
+        <div style="font-size: 2rem; font-weight: 800; color: var(--primary);">{{ available_medicines }}</div>
+        <div style="color: var(--text-muted); font-size: 0.8rem;">Available Medicines</div>
+        <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.2rem;">{{ total_medicines }} total in inventory</div>
+    </div>
+    <div class="bento-card glass-liquid col-3" style="text-align: center; padding: 1.8rem 1rem;">
+        <div style="font-size: 2.2rem; margin-bottom: 0.4rem;">📦</div>
+        <div style="font-size: 2rem; font-weight: 800; color: var(--warning);">{{ pending_orders }}</div>
+        <div style="color: var(--text-muted); font-size: 0.8rem;">Pending Orders</div>
+        <a href="{{ url_for('pharmacy.orders') }}" style="font-size: 0.75rem; color: var(--primary); margin-top: 0.2rem; display: block;">View all orders →</a>
+    </div>
+    <div class="bento-card glass-liquid col-3" style="text-align: center; padding: 1.8rem 1rem;">
+        <div style="font-size: 2.2rem; margin-bottom: 0.4rem;">💰</div>
+        <div style="font-size: 2rem; font-weight: 800; color: var(--success);">₹{{ "%.0f"|format(total_revenue) }}</div>
+        <div style="color: var(--text-muted); font-size: 0.8rem;">Confirmed Revenue</div>
+    </div>
+    <div class="bento-card glass-liquid col-3" style="text-align: center; padding: 1.8rem 1rem;">
+        <div style="font-size: 2.2rem; margin-bottom: 0.4rem;">⭐</div>
+        <div style="font-size: 2rem; font-weight: 800; color: #f59e0b;">{{ shop.rating_avg or '—' }}</div>
+        <div style="color: var(--text-muted); font-size: 0.8rem;">Average Rating</div>
+        <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.2rem;">{{ shop.total_reviews }} total reviews</div>
+    </div>
+</div>
+
+<div class="bento-grid">
+    <!-- Low Stock Alerts -->
+    <div class="bento-card glass-minimal col-6" style="padding: 1.5rem;">
+        <h3 style="margin-top: 0; color: var(--warning); font-size: 1rem;">⚠️ Low Stock Alerts <span style="color: var(--text-muted); font-weight: 400; font-size: 0.85rem;">(≤5 units)</span></h3>
+        {% if low_stock %}
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead><tr><th>Medicine</th><th>Stock</th><th>Price</th><th></th></tr></thead>
+                <tbody>
+                {% for med in low_stock %}
+                <tr>
+                    <td><strong>{{ med.name }}</strong></td>
+                    <td><span style="color: var(--warning); font-weight: 700;">{{ med.stock_quantity }}</span></td>
+                    <td>₹{{ med.price }}</td>
+                    <td><a href="{{ url_for('pharmacy.edit_medicine', medicine_id=med.id) }}" class="btn btn-secondary btn-sm">Update Stock</a></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if out_of_stock > 0 %}
+        <p style="color: var(--danger); font-size: 0.82rem; margin: 0.75rem 0 0;">🚫 {{ out_of_stock }} medicine(s) are out of stock.</p>
+        {% endif %}
+        {% else %}
+        <p style="color: var(--text-muted); text-align: center; padding: 1.5rem 0;">✅ All medicines are well stocked.</p>
+        {% endif %}
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="bento-card glass-minimal col-6" style="padding: 1.5rem;">
+        <h3 style="margin-top: 0; color: var(--primary); font-size: 1rem;">📋 Recent Orders</h3>
+        {% if recent_orders %}
+        <div class="table-responsive">
+            <table class="custom-table">
+                <thead><tr><th>#</th><th>Medicine</th><th>Qty</th><th>Amount</th><th>Status</th></tr></thead>
+                <tbody>
+                {% for order in recent_orders[:8] %}
+                <tr>
+                    <td><code>{{ order.id }}</code></td>
+                    <td>{{ order.medicine.name[:25] }}{% if order.medicine.name|length > 25 %}...{% endif %}</td>
+                    <td>{{ order.quantity }}</td>
+                    <td>₹{{ order.total_price }}</td>
+                    <td>
+                        {% if order.status == 'Confirmed' %}
+                        <span style="color: var(--success); font-weight: 600; font-size: 0.8rem;">✅ Confirmed</span>
+                        {% elif order.status == 'Rejected' %}
+                        <span style="color: var(--danger); font-size: 0.8rem;">❌ Rejected</span>
+                        {% else %}
+                        <span style="color: var(--warning); font-size: 0.8rem;">⏳ Pending</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <a href="{{ url_for('pharmacy.orders') }}" style="font-size: 0.82rem; color: var(--primary); display: block; margin-top: 0.75rem;">View all orders →</a>
+        {% else %}
+        <p style="color: var(--text-muted); text-align: center; padding: 1.5rem 0;">No orders yet.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

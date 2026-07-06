@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}{{ shop.shop_name }} — ROOMMET Pharmacy{% endblock %}
+
+{% block extra_css %}
+<style>
+.med-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.2rem; }
+.medicine-card { padding: 1.2rem; cursor: pointer; transition: var(--transition); text-decoration: none; color: inherit; display: block; }
+.medicine-card:hover { transform: translateY(-5px); }
+.medicine-thumb { width: 100%; height: 130px; border-radius: 8px; overflow: hidden; margin-bottom: 0.8rem; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; }
+.star-display { color: #f59e0b; }
+.tag-pill { background: rgba(124,58,237,.12); border: 1px solid rgba(124,58,237,.25); color: var(--primary); font-size: 0.72rem; padding: 3px 9px; border-radius: 20px; }
+.skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; height: 240px; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div style="margin-top: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+    <a href="{{ url_for('pharmacy.marketplace') }}" style="color: var(--primary);">← Marketplace</a>
+    <span style="margin: 0 0.5rem;">›</span> {{ shop.shop_name }}
+</div>
+
+<!-- Shop Header Card -->
+<div class="bento-card glass-liquid" style="margin-bottom: 2rem; padding: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <h1 style="font-size: 1.8rem; margin: 0 0 0.4rem;">🏥 {{ shop.shop_name }}</h1>
+            <p style="color: var(--text-muted); margin: 0 0 0.5rem;">📍 {{ shop.location }}</p>
+            {% if shop.description %}<p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">{{ shop.description }}</p>{% endif %}
+        </div>
+        <div style="text-align: right;">
+            {% if shop.rating_avg > 0 %}
+            <div style="font-size: 1.4rem; color: #f59e0b; margin-bottom: 0.3rem;">{{ '★' * shop.rating_avg|int }}{{ '☆' * (5 - shop.rating_avg|int) }}</div>
+            <div style="color: var(--text-muted); font-size: 0.85rem;">{{ shop.rating_avg }}/5 · {{ shop.total_reviews }} reviews</div>
+            {% else %}<div style="color: var(--text-muted); font-size: 0.85rem;">No reviews yet</div>{% endif %}
+            {% if shop.contact_phone %}<div style="color: var(--text-muted); font-size: 0.82rem; margin-top: 0.5rem;">📞 {{ shop.contact_phone }}</div>{% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Search + Filter -->
+<form method="GET" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+    <div style="flex: 1; min-width: 200px; position: relative;">
+        <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted);">🔍</span>
+        <input type="text" name="q" value="{{ q }}" placeholder="Search by name or salt..." class="form-control tactile-inset" style="padding-left: 2.5rem;">
+    </div>
+    {% if categories %}
+    <select name="category" class="form-control tactile-inset" style="max-width: 180px;">
+        <option value="">All Categories</option>
+        {% for c in categories %}<option value="{{ c }}" {% if cat == c %}selected{% endif %}>{{ c }}</option>{% endfor %}
+    </select>
+    {% endif %}
+    <button type="submit" class="btn btn-primary tactile-outset">Filter</button>
+    {% if q or cat %}<a href="{{ url_for('pharmacy.shop_detail', shop_id=shop.id) }}" class="btn btn-secondary">Clear</a>{% endif %}
+</form>
+
+<!-- Medicine Grid Skeleton -->
+<div id="skelGrid" class="med-grid">{% for _ in range(8) %}<div class="skeleton"></div>{% endfor %}</div>
+
+<!-- Medicine Grid -->
+<div id="medGrid" class="med-grid" style="display: none;">
+{% if medicines %}
+    {% for med in medicines %}
+    <a href="{{ url_for('pharmacy.medicine_detail', medicine_id=med.id) }}" class="bento-card glass-minimal medicine-card">
+        <div class="medicine-thumb">
+            <img src="{{ med.photo_url }}" alt="{{ med.name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span style=\'font-size:3rem;\'>💊</span>'">
+        </div>
+        <h4 style="margin: 0 0 0.3rem; font-size: 0.95rem;">{{ med.name }}</h4>
+        {% if med.category %}<span class="tag-pill">{{ med.category }}</span>{% endif %}
+        {% if med.salt_composition %}<p style="color: var(--text-muted); font-size: 0.75rem; margin: 0.4rem 0;">{{ med.salt_composition[:80] }}{% if med.salt_composition|length > 80 %}...{% endif %}</p>{% endif %}
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem;">
+            <strong style="color: var(--primary); font-size: 1.05rem;">₹{{ med.price }}</strong>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">Stock: {{ med.stock_quantity }}</span>
+        </div>
+        {% if med.average_rating > 0 %}<div class="star-display" style="font-size: 0.8rem; margin-top: 0.4rem;">★ {{ med.average_rating }}/5</div>{% endif %}
+        <div style="margin-top: 0.8rem;">
+            <span class="btn btn-primary btn-sm" style="width: 100%; text-align: center; display: block;">View & Order</span>
+        </div>
+    </a>
+    {% endfor %}
+{% else %}
+    <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">💊</div>
+        <p>No medicines found matching your search.</p>
+    </div>
+{% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        document.getElementById('skelGrid').style.display = 'none';
+        document.getElementById('medGrid').style.display = 'grid';
+    }, 500);
+});
+</script>
+{% endblock %}

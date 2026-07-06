@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if editing else 'Add' }} Medicine — {{ shop.shop_name }}{% endblock %}
+
+{% block content %}
+<div style="margin-top: 1rem; margin-bottom: 2rem;">
+    <a href="{{ url_for('pharmacy.inventory') }}" style="color: var(--primary); font-size: 0.85rem;">← Back to Inventory</a>
+    <h1 style="font-size: 1.9rem; margin: 0.5rem 0 0.2rem;">{{ '✏️ Edit Medicine' if editing else '+ Add Medicine' }}</h1>
+    <p style="color: var(--text-muted); margin: 0;">{{ shop.shop_name }}</p>
+</div>
+
+<div class="bento-card glass-liquid" style="max-width: 700px; padding: 2rem;">
+    <form method="POST" enctype="multipart/form-data"
+          action="{{ url_for('pharmacy.edit_medicine', medicine_id=medicine.id) if editing else url_for('pharmacy.add_medicine') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+            <label class="form-label">Medicine / Product Name *</label>
+            <input type="text" name="name" class="form-control tactile-inset" value="{{ medicine.name if medicine else '' }}" placeholder="e.g. Dolo 650, Azithromycin 500mg" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.2rem;">
+            <div class="form-group">
+                <label class="form-label">Price (₹) *</label>
+                <input type="number" name="price" step="0.01" min="0" class="form-control tactile-inset" value="{{ medicine.price if medicine else '' }}" placeholder="e.g. 45.00" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Stock Quantity *</label>
+                <input type="number" name="stock_quantity" min="0" class="form-control tactile-inset" value="{{ medicine.stock_quantity if medicine else 0 }}" required>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+            <label class="form-label">Salt Composition</label>
+            <input type="text" name="salt_composition" class="form-control tactile-inset" value="{{ medicine.salt_composition if medicine else '' }}" placeholder="e.g. Paracetamol 650mg + Caffeine 30mg">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+            <label class="form-label">Category</label>
+            <input type="text" name="category" list="catlist" class="form-control tactile-inset" value="{{ medicine.category if medicine else '' }}" placeholder="e.g. Analgesic, Antibiotic, Vitamin">
+            <datalist id="catlist">
+                <option value="Analgesic"><option value="Antibiotic"><option value="Antifungal"><option value="Antiviral">
+                <option value="Vitamin & Supplement"><option value="Antacid"><option value="Antiseptic"><option value="First Aid">
+                <option value="Dermatology"><option value="Ophthalmic"><option value="Cardiology"><option value="Diabetes">
+                <option value="Cold & Flu"><option value="Digestive">
+            </datalist>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+            <label class="form-label">Description</label>
+            <textarea name="description" rows="3" class="form-control tactile-inset" placeholder="Usage, dosage, precautions...">{{ medicine.description if medicine else '' }}</textarea>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.2rem;">
+            <div class="form-group">
+                <label class="form-label">Delivery Options</label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" name="delivery_options" value="Standard" {% if not medicine or 'Standard' in medicine.delivery_options_list %}checked{% endif %} style="width: 16px; height: 16px;"> Standard Delivery
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" name="delivery_options" value="Express" {% if medicine and 'Express' in medicine.delivery_options_list %}checked{% endif %} style="width: 16px; height: 16px;"> ⚡ Express Delivery
+                </label>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Payment Options</label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" name="payment_options" value="UPI" {% if not medicine or 'UPI' in medicine.payment_options_list %}checked{% endif %} style="width: 16px; height: 16px;"> 💳 UPI
+                </label>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                    <input type="checkbox" name="payment_options" value="COD" {% if not medicine or 'COD' in medicine.payment_options_list %}checked{% endif %} style="width: 16px; height: 16px;"> 💵 Cash on Delivery
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+            <label class="form-label">Medicine Photo</label>
+            {% if editing and medicine.photo_path %}
+            <div style="margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.75rem;">
+                <img src="{{ medicine.photo_url }}" alt="Current photo" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid var(--glass-border);" onerror="this.style.display='none'">
+                <span style="color: var(--text-muted); font-size: 0.82rem;">Current photo. Upload new to replace.</span>
+            </div>
+            {% endif %}
+            <input type="file" name="photo" accept="image/*" class="form-control tactile-inset">
+            <p style="color: var(--text-muted); font-size: 0.78rem; margin: 0.3rem 0 0;">JPG, PNG, WebP · Max 5MB · EXIF metadata auto-stripped</p>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.5rem;">
+            <label style="display: flex; align-items: center; gap: 0.75rem; cursor: pointer;">
+                <input type="checkbox" name="is_available" {% if not medicine or medicine.is_available %}checked{% endif %} style="width: 18px; height: 18px;">
+                <span><strong>Make visible on marketplace</strong> <span style="color: var(--text-muted); font-size: 0.85rem;">(uncheck to hide without deleting)</span></span>
+            </label>
+        </div>
+
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary tactile-outset">{{ '💾 Save Changes' if editing else '+ Add to Inventory' }}</button>
+            <a href="{{ url_for('pharmacy.inventory') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

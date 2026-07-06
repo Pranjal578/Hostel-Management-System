@@ -56,16 +56,22 @@ def create_app(config_name=None):
     from app.routes.resident import resident_bp
     from app.routes.settings import settings_bp
     from app.routes.api import api_bp
-    
+    from app.routes.pharmacy import pharmacy_bp
+
     app.register_blueprint(auth_bp, url_prefix='/')
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(owner_bp, url_prefix='/owner')
     app.register_blueprint(resident_bp, url_prefix='/resident')
     app.register_blueprint(settings_bp, url_prefix='/settings')
     app.register_blueprint(api_bp, url_prefix='/api')
+    app.register_blueprint(pharmacy_bp, url_prefix='/pharmacy')
 
     # Migrate old static payment paths to secure path in db
     with app.app_context():
+        # Ensure medicine photo folder exists
+        medicines_img_dir = os.path.join(app.root_path, 'static', 'images', 'medicines')
+        os.makedirs(medicines_img_dir, exist_ok=True)
+
         # Run auto-upgrades for database migrations on start
         if not app.config.get('TESTING'):
             migrations_dir = os.path.join(os.path.dirname(app.root_path), 'migrations')

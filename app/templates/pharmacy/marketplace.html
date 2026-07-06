@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Pharmacy Marketplace — ROOMMET{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Skeleton loader */
+.skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+.skeleton-card { height: 280px; border-radius: var(--radius-md); margin-bottom: 1.5rem; }
+.med-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+.shop-badge { font-size: 0.7rem; padding: 3px 10px; border-radius: 20px; font-weight: 700; }
+.badge-approved { background: rgba(16,185,129,.15); color: var(--success); border: 1px solid rgba(16,185,129,.3); }
+.star-display { color: #f59e0b; font-size: 1rem; letter-spacing: 2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-top: 1rem; margin-bottom: 2rem;">
+    <h1 style="font-size: 2.2rem; margin-bottom: 0.25rem;">🏪 Pharmacy Marketplace</h1>
+    <p style="color: var(--text-secondary); margin: 0;">Browse verified medical stores — search by medicine name, salt composition, or category.</p>
+</div>
+
+<!-- Search & Filter Bar -->
+<form method="GET" action="{{ url_for('pharmacy.marketplace') }}" style="margin-bottom: 2rem;">
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center;">
+        <div style="flex: 1; min-width: 220px; position: relative;">
+            <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none;">🔍</span>
+            <input type="text" name="q" value="{{ query }}" placeholder="Search medicines, salts, or shops..." class="form-control tactile-inset" style="padding-left: 2.5rem;">
+        </div>
+        {% if categories %}
+        <select name="category" class="form-control tactile-inset" style="max-width: 200px;">
+            <option value="">All Categories</option>
+            {% for cat in categories %}
+            <option value="{{ cat }}" {% if category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+        </select>
+        {% endif %}
+        <button type="submit" class="btn btn-primary tactile-outset">Search</button>
+        {% if query or category %}
+        <a href="{{ url_for('pharmacy.marketplace') }}" class="btn btn-secondary">Clear</a>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Skeleton Loaders (shown via JS while data loads) -->
+<div id="skeletonGrid" class="med-grid" style="display: none;">
+    {% for _ in range(6) %}<div class="skeleton skeleton-card"></div>{% endfor %}
+</div>
+
+<!-- Shop Cards -->
+<div id="shopGrid">
+{% if shops %}
+    {% for shop in shops %}
+    <div class="bento-card glass-minimal" style="margin-bottom: 2rem;">
+        <!-- Shop Header -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+                <h2 style="font-size: 1.3rem; margin: 0 0 0.25rem;">🏥 {{ shop.shop_name }}</h2>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">📍 {{ shop.location }}</p>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                {% if shop.rating_avg > 0 %}
+                <div>
+                    <span class="star-display">{{ '★' * shop.rating_avg|int }}{{ '☆' * (5 - shop.rating_avg|int) }}</span>
+                    <span style="color: var(--text-muted); font-size: 0.8rem;">{{ shop.rating_avg }}/5 ({{ shop.total_reviews }} reviews)</span>
+                </div>
+                {% endif %}
+                <a href="{{ url_for('pharmacy.shop_detail', shop_id=shop.id) }}" class="btn btn-primary btn-sm tactile-outset">View Shop →</a>
+            </div>
+        </div>
+
+        <!-- Medicine Preview Grid (first 4) -->
+        {% set avail_meds = shop.medicines | selectattr('is_available') | list %}
+        {% if avail_meds %}
+        <div class="med-grid">
+            {% for med in avail_meds[:4] %}
+            <a href="{{ url_for('pharmacy.medicine_detail', medicine_id=med.id) }}" style="text-decoration: none;">
+                <div class="bento-card glass-liquid" style="padding: 1.2rem; cursor: pointer; transition: var(--transition);" onmouseover="this.style.transform='translateY(-4px)'" onmouseout="this.style.transform=''">
+                    <div style="width: 100%; height: 120px; border-radius: 8px; overflow: hidden; margin-bottom: 0.8rem; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+                        <img src="{{ med.photo_url }}" alt="{{ med.name }}" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span style=\'font-size:2.5rem;\'>💊</span>'">
+                    </div>
+                    <h4 style="margin: 0 0 0.3rem; font-size: 0.95rem; color: var(--text-primary);">{{ med.name }}</h4>
+                    {% if med.salt_composition %}<p style="color: var(--text-muted); font-size: 0.75rem; margin: 0 0 0.5rem;">{{ med.salt_composition[:60] }}{% if med.salt_composition|length > 60 %}...{% endif %}</p>{% endif %}
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <strong style="color: var(--primary); font-size: 1rem;">₹{{ med.price }}</strong>
+                        {% if med.average_rating > 0 %}<span style="color: #f59e0b; font-size: 0.8rem;">★ {{ med.average_rating }}</span>{% endif %}
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% if avail_meds|length > 4 %}
+        <div style="text-align: center; margin-top: 1rem;">
+            <a href="{{ url_for('pharmacy.shop_detail', shop_id=shop.id) }}" style="color: var(--primary); font-size: 0.9rem;">View all {{ avail_meds|length }} medicines →</a>
+        </div>
+        {% endif %}
+        {% else %}
+        <p style="color: var(--text-muted); text-align: center; padding: 1.5rem 0;">No medicines listed yet.</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+    <div style="text-align: center; padding: 5rem 1rem; color: var(--text-muted);">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">🏪</div>
+        <h3 style="color: var(--text-secondary);">No shops available yet.</h3>
+        <p>Check back soon — approved shops will appear here.</p>
+    </div>
+{% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Brief skeleton flash for visual effect on load
+document.addEventListener('DOMContentLoaded', () => {
+    const skeleton = document.getElementById('skeletonGrid');
+    const grid = document.getElementById('shopGrid');
+    skeleton.style.display = 'grid';
+    grid.style.display = 'none';
+    setTimeout(() => {
+        skeleton.style.display = 'none';
+        grid.style.display = 'block';
+    }, 600);
+});
+</script>
+{% endblock %}

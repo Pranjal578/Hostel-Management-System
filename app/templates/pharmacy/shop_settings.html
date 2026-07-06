@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Shop Settings — ROOMMET{% endblock %}
+
+{% block content %}
+<div style="margin-top: 1rem; margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; margin-bottom: 0.2rem;">⚙️ Shop Settings</h1>
+    <p style="color: var(--text-muted); margin: 0;">Update your shop profile. Changes require admin re-review only if license number changes.</p>
+</div>
+
+{% if shop and shop.verification_status == 'Pending' %}
+<div class="alert alert-warning" style="margin-bottom: 1.5rem;">⏳ Your shop is currently pending admin review. You will be notified once approved.</div>
+{% elif shop and shop.verification_status == 'Rejected' %}
+<div class="alert alert-danger" style="margin-bottom: 1.5rem;">❌ Your shop was rejected. Update your license number and details, then save to request a new review.</div>
+{% endif %}
+
+<div class="bento-card glass-liquid" style="max-width: 640px; padding: 2rem;">
+    <form method="POST" action="{{ url_for('pharmacy.shop_settings') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+            <label class="form-label">Shop Name *</label>
+            <input type="text" name="shop_name" class="form-control tactile-inset" value="{{ shop.shop_name if shop else '' }}" placeholder="e.g. MedCare Pharmacy" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+            <label class="form-label">Drug License Number *</label>
+            <input type="text" name="license_number" class="form-control tactile-inset" value="{{ shop.license_number if shop else '' }}" placeholder="e.g. DL/MH/123456" required>
+            <p style="color: var(--text-muted); font-size: 0.78rem; margin: 0.3rem 0 0;">Your license will be reviewed by the platform admin before your shop goes live.</p>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+            <label class="form-label">Location / Address *</label>
+            <input type="text" name="location" class="form-control tactile-inset" value="{{ shop.location if shop else '' }}" placeholder="e.g. Shop 4, Ground Floor, Main Market" required>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.2rem;">
+            <label class="form-label">Description</label>
+            <textarea name="description" rows="3" class="form-control tactile-inset" placeholder="Tell customers about your shop...">{{ shop.description if shop else '' }}</textarea>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="form-group">
+                <label class="form-label">Contact Phone</label>
+                <input type="tel" name="contact_phone" class="form-control tactile-inset" value="{{ shop.contact_phone if shop else '' }}" placeholder="e.g. 9876543210">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Contact Email</label>
+                <input type="email" name="contact_email" class="form-control tactile-inset" value="{{ shop.contact_email if shop else '' }}" placeholder="shop@example.com">
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary tactile-outset">💾 Save Shop Profile</button>
+    </form>
+</div>
+{% endblock %}

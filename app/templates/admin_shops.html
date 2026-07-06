@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Shop Management — SuperAdmin{% endblock %}
+
+{% block content %}
+<div style="margin-top: 1rem; margin-bottom: 2rem;">
+    <h1 style="font-size: 2.2rem; margin-bottom: 0.25rem;">🏪 Shop Approvals</h1>
+    <p style="color: var(--text-secondary); margin: 0;">Review and approve registered medical shop applications before they go live on the marketplace.</p>
+</div>
+
+<!-- Pending -->
+<div class="bento-card glass-minimal col-12" style="margin-bottom: 1.5rem;">
+    <h3 style="color: var(--warning); margin-bottom: 1rem;">⏳ Pending Review ({{ pending_shops|length }})</h3>
+    {% if pending_shops %}
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead><tr><th>Shop Name</th><th>Owner</th><th>License No.</th><th>Location</th><th>Registered</th><th>Actions</th></tr></thead>
+            <tbody>
+            {% for shop in pending_shops %}
+            <tr>
+                <td><strong>{{ shop.shop_name }}</strong>{% if shop.description %}<br><span style="font-size:0.75rem;color:var(--text-muted);">{{ shop.description[:60] }}...</span>{% endif %}</td>
+                <td>{{ shop.owner.full_name or shop.owner.email }}<br><span style="font-size:0.75rem;color:var(--text-muted);">{{ shop.owner.email }}</span></td>
+                <td><code>{{ shop.license_number }}</code></td>
+                <td>{{ shop.location }}</td>
+                <td style="font-size:0.8rem;white-space:nowrap;">{{ shop.created_at.strftime('%b %d, %Y') }}</td>
+                <td>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <form method="POST" action="{{ url_for('admin.approve_shop', shop_id=shop.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-success btn-sm tactile-outset">✅ Approve</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('admin.reject_shop', shop_id=shop.id) }}" onsubmit="return confirm('Reject this shop?')">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-danger btn-sm">❌ Reject</button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p style="color: var(--text-muted); text-align: center; padding: 1.5rem;">No pending shop applications.</p>
+    {% endif %}
+</div>
+
+<!-- Approved -->
+<div class="bento-card glass-minimal col-12" style="margin-bottom: 1.5rem;">
+    <h3 style="color: var(--success); margin-bottom: 1rem;">✅ Approved Shops ({{ approved_shops|length }})</h3>
+    {% if approved_shops %}
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead><tr><th>Shop</th><th>Owner</th><th>License</th><th>Location</th><th>Medicines</th><th>Rating</th><th>Actions</th></tr></thead>
+            <tbody>
+            {% for shop in approved_shops %}
+            <tr>
+                <td><strong>{{ shop.shop_name }}</strong></td>
+                <td>{{ shop.owner.full_name or shop.owner.email }}</td>
+                <td><code>{{ shop.license_number }}</code></td>
+                <td>{{ shop.location }}</td>
+                <td>{{ shop.approved_medicines_count }}</td>
+                <td>{% if shop.rating_avg %}⭐ {{ shop.rating_avg }}{% else %}—{% endif %}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('admin.reject_shop', shop_id=shop.id) }}" onsubmit="return confirm('Suspend this approved shop?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-danger btn-sm">Suspend</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}<p style="color: var(--text-muted); text-align: center; padding: 1rem;">No approved shops yet.</p>{% endif %}
+</div>
+
+<!-- Rejected -->
+{% if rejected_shops %}
+<div class="bento-card glass-minimal col-12">
+    <h3 style="color: var(--danger); margin-bottom: 1rem;">❌ Rejected Shops ({{ rejected_shops|length }})</h3>
+    <div class="table-responsive">
+        <table class="custom-table">
+            <thead><tr><th>Shop</th><th>Owner</th><th>License</th><th>Location</th><th>Actions</th></tr></thead>
+            <tbody>
+            {% for shop in rejected_shops %}
+            <tr>
+                <td><strong>{{ shop.shop_name }}</strong></td>
+                <td>{{ shop.owner.full_name or shop.owner.email }}</td>
+                <td><code>{{ shop.license_number }}</code></td>
+                <td>{{ shop.location }}</td>
+                <td>
+                    <form method="POST" action="{{ url_for('admin.approve_shop', shop_id=shop.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-success btn-sm">Re-approve</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}My Medicine Orders — ROOMMET{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Modern Step progress bar styling */
+.progress-track {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    margin: 2rem 0 1rem;
+    padding: 0;
+    list-style: none;
+}
+.progress-track::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-50%);
+    z-index: 1;
+}
+.progress-track-fill {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    height: 4px;
+    background: var(--primary);
+    transform: translateY(-50%);
+    z-index: 2;
+    transition: width 0.4s ease;
+}
+.step-node {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.step-dot {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #1a1a2e;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    transition: all 0.3s ease;
+}
+.step-node.active .step-dot {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+    box-shadow: 0 0 10px var(--glow);
+}
+.step-node.active {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+@media (max-width: 576px) {
+    .progress-track {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.5rem;
+        padding-left: 1.5rem;
+    }
+    .progress-track::before {
+        width: 4px;
+        height: 100%;
+        left: 20px;
+        top: 0;
+        transform: none;
+    }
+    .progress-track-fill {
+        width: 4px !important;
+        left: 20px;
+        top: 0;
+        transform: none;
+    }
+    .step-node {
+        flex-direction: row;
+        gap: 1rem;
+    }
+    .step-dot {
+        margin-bottom: 0;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-top: 1rem; margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 2rem; margin-bottom: 0.2rem;">🛒 My Medicine Orders</h1>
+        <p style="color: var(--text-muted); margin: 0;">Track the delivery status of your pharmacy purchases.</p>
+    </div>
+    <a href="{{ url_for('pharmacy.marketplace') }}" class="btn btn-primary tactile-outset">Browse Marketplace</a>
+</div>
+
+{% if orders %}
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        {% for order in orders %}
+        <div class="bento-card glass-minimal" style="padding: 1.5rem;">
+            <!-- Header section of order -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--glass-border); padding-bottom: 1rem;">
+                <div>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Order #{{ order.id }} · Placed on {{ order.created_at.strftime('%b %d, %Y at %I:%M %p') }}</span>
+                    <h3 style="margin: 0.4rem 0 0.2rem; font-size: 1.2rem; color: var(--text-primary);">
+                        💊 {{ order.medicine.name }}
+                    </h3>
+                    <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">
+                        Sold by <a href="{{ url_for('pharmacy.shop_detail', shop_id=order.shop.id) }}" style="color: var(--primary); text-decoration: none;">{{ order.shop.shop_name }}</a>
+                    </p>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">₹{{ order.total_price }}</div>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">{{ order.quantity }} unit(s) · {{ order.delivery_option }} Delivery</span>
+                </div>
+            </div>
+
+            <!-- Status Tracking Section -->
+            <div style="margin-top: 1rem;">
+                {% if order.status == 'Pending' %}
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--warning); padding: 0.5rem 0;">
+                        <span style="font-size: 1.2rem;">⏳</span>
+                        <strong>Awaiting Confirmation:</strong> The shop owner is reviewing your order details.
+                    </div>
+                {% elif order.status == 'Rejected' %}
+                    <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--danger); padding: 0.5rem 0;">
+                        <span style="font-size: 1.2rem;">❌</span>
+                        <div>
+                            <strong>Order Rejected:</strong>
+                            {% if order.rejection_reason %}
+                                <span style="font-style: italic;">"{{ order.rejection_reason }}"</span>
+                            {% else %}
+                                The order was declined by the pharmacy.
+                            {% endif %}
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Confirmed: Show delivery progress bar -->
+                    <div style="margin-bottom: 0.5rem; font-weight: 600; font-size: 0.9rem; display: flex; justify-content: space-between;">
+                        <span>🚚 Delivery Status: <span style="color: var(--success);">{{ order.delivery_status }}</span></span>
+                    </div>
+
+                    <!-- Visual Progress Bar -->
+                    <div style="position: relative; margin-bottom: 2rem;">
+                        <div class="progress-track">
+                            <!-- Calculate fill percentage based on stage index -->
+                            {% set fill_width = (order.delivery_stage_index / (order.DELIVERY_STAGES|length - 1)) * 100 %}
+                            <div class="progress-track-fill" style="width: {{ fill_width }}%;"></div>
+                            
+                            {% for stage in order.DELIVERY_STAGES %}
+                                <div class="step-node {% if order.delivery_stage_index >= loop.index0 %}active{% endif %}">
+                                    <div class="step-dot">{{ loop.index }}</div>
+                                    <span>{{ stage }}</span>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Address and details fold-out info -->
+            <div style="background: rgba(0, 0, 0, 0.15); border-radius: 8px; padding: 0.8rem 1.2rem; margin-top: 1rem; border: 1px solid var(--glass-border); display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.85rem;">
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase;">Delivery Address</span>
+                    <strong>{{ order.delivery_address or 'Not specified' }}</strong>
+                </div>
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase;">Payment Details</span>
+                    <strong>{{ order.payment_option }}</strong>
+                </div>
+                {% if order.notes %}
+                <div>
+                    <span style="color: var(--text-muted); display: block; font-size: 0.75rem; text-transform: uppercase;">Your Notes</span>
+                    <span style="font-style: italic;">{{ order.notes }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="bento-card glass-minimal" style="text-align: center; padding: 4rem 1rem; color: var(--text-muted);">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">🛒</div>
+        <h3>No medicine orders found</h3>
+        <p>Your orders and their delivery statuses will show up here once you make a purchase.</p>
+        <a href="{{ url_for('pharmacy.marketplace') }}" class="btn btn-primary tactile-outset" style="margin-top: 1rem; display: inline-block;">Go to Marketplace</a>
+    </div>
+{% endif %}
+{% endblock %}

@@ -264,3 +264,73 @@ def send_notice_email(resident_email, resident_name, hostel_name, notice_title, 
         print(error_msg)
         return False, error_msg
 
+
+def send_order_confirmation(buyer_email, medicine_name, shop_name, order_id):
+    """
+    Send an order confirmation email to the buyer after placing a medicine order.
+    """
+    try:
+        if not current_app.config.get('MAIL_SERVER'):
+            return False, "Email not configured."
+        subject = f"Order #{order_id} Placed — {medicine_name}"
+        html_body = f"""
+        <html>
+          <body style="font-family:'Segoe UI',sans-serif;background:#0f0f1a;color:#e2e8f0;padding:20px;">
+            <div style="max-width:520px;margin:0 auto;background:#1a1a2e;border:1px solid rgba(124,58,237,.3);border-radius:16px;padding:32px;">
+              <h2 style="color:#a78bfa;margin-top:0;">🛒 Order Confirmed!</h2>
+              <p>Your order has been placed successfully.</p>
+              <div style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.3);border-radius:10px;padding:18px;margin:20px 0;">
+                <p style="margin:4px 0;"><strong>Order ID:</strong> #{order_id}</p>
+                <p style="margin:4px 0;"><strong>Medicine:</strong> {medicine_name}</p>
+                <p style="margin:4px 0;"><strong>Shop:</strong> {shop_name}</p>
+              </div>
+              <p style="color:#94a3b8;font-size:14px;">The shop owner will review and confirm your order shortly. You will receive another email once it is confirmed.</p>
+            </div>
+          </body>
+        </html>
+        """
+        msg = Message(
+            subject=subject,
+            recipients=[buyer_email],
+            html=html_body,
+            sender=current_app.config.get('SENDER_EMAIL', 'noreply@hostelmanagement.com')
+        )
+        mail.send(msg)
+        return True, "Order confirmation email sent."
+    except Exception as e:
+        print(f"Failed to send order confirmation: {e}")
+        return False, str(e)
+
+
+def send_order_status_update(buyer_email, status, medicine_name):
+    """
+    Notify buyer when shop owner confirms or rejects their order.
+    """
+    try:
+        if not current_app.config.get('MAIL_SERVER'):
+            return False, "Email not configured."
+        icon = "✅" if status == 'Confirmed' else "❌"
+        color = "#10b981" if status == 'Confirmed' else "#ef4444"
+        subject = f"{icon} Your order for {medicine_name} has been {status.lower()}"
+        html_body = f"""
+        <html>
+          <body style="font-family:'Segoe UI',sans-serif;background:#0f0f1a;color:#e2e8f0;padding:20px;">
+            <div style="max-width:520px;margin:0 auto;background:#1a1a2e;border:1px solid rgba(124,58,237,.3);border-radius:16px;padding:32px;">
+              <h2 style="color:{color};margin-top:0;">{icon} Order {status}</h2>
+              <p>Your order for <strong>{medicine_name}</strong> has been <strong style="color:{color};">{status.lower()}</strong> by the shop owner.</p>
+              {"<p>Your items will be prepared for delivery. Please ensure your delivery details are correct.</p>" if status == 'Confirmed' else "<p>Please contact the shop for more information or place a new order.</p>"}
+            </div>
+          </body>
+        </html>
+        """
+        msg = Message(
+            subject=subject,
+            recipients=[buyer_email],
+            html=html_body,
+            sender=current_app.config.get('SENDER_EMAIL', 'noreply@hostelmanagement.com')
+        )
+        mail.send(msg)
+        return True, "Order status email sent."
+    except Exception as e:
+        print(f"Failed to send order status email: {e}")
+        return False, str(e)

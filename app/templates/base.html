@@ -43,6 +43,8 @@
                         <li><a href="{{ url_for('admin.hostels_list') }}">Hostels</a></li>
                         <li><a href="{{ url_for('admin.owners_list') }}">Owners</a></li>
                         <li><a href="{{ url_for('admin.residents_list') }}">Residents</a></li>
+                        <li><a href="{{ url_for('admin.shops_list') }}">Shops</a></li>
+                        <li><a href="{{ url_for('pharmacy.marketplace') }}">Marketplace</a></li>
                         <li><a href="{{ url_for('settings.index') }}">Settings</a></li>
                         <li><a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm">Logout</a></li>
                     {% elif session.get('user_role') == 'HostelOwner' %}
@@ -54,6 +56,8 @@
                         <li><a href="{{ url_for('owner.notices_list') }}">Notices</a></li>
                         <li><a href="{{ url_for('owner.payments_list') }}">Payments</a></li>
                         <li><a href="{{ url_for('owner.chat_dashboard') }}">Chat</a></li>
+                        <li><a href="{{ url_for('pharmacy.marketplace') }}">Marketplace</a></li>
+                        <li><a href="{{ url_for('pharmacy.my_orders') }}">My Orders</a></li>
                         <li><a href="{{ url_for('settings.index') }}">Settings</a></li>
                         <li><a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm">Logout</a></li>
                     {% elif session.get('user_role') == 'Resident' %}
@@ -63,15 +67,29 @@
                         <li><a href="{{ url_for('resident.notices_page') }}">Notices</a></li>
                         <li><a href="{{ url_for('resident.payments_page') }}">Payments</a></li>
                         <li><a href="{{ url_for('resident.chat_page') }}">Chat</a></li>
+                        <li><a href="{{ url_for('pharmacy.marketplace') }}">🏪 Pharmacy</a></li>
+                        <li><a href="{{ url_for('pharmacy.my_orders') }}">My Orders</a></li>
                         <li><a href="{{ url_for('settings.index') }}">Settings</a></li>
+                        <li><a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm">Logout</a></li>
+                    {% elif session.get('user_role') == 'ShopOwner' %}
+                        <!-- Shop Owner -->
+                        <li><a href="{{ url_for('pharmacy.shop_dashboard') }}">Dashboard</a></li>
+                        <li><a href="{{ url_for('pharmacy.inventory') }}">Inventory</a></li>
+                        <li><a href="{{ url_for('pharmacy.orders') }}">Orders</a></li>
+                        <li><a href="{{ url_for('pharmacy.reviews') }}">Reviews</a></li>
+                        <li><a href="{{ url_for('pharmacy.marketplace') }}">Marketplace</a></li>
+                        <li><a href="{{ url_for('pharmacy.shop_settings') }}">Shop Settings</a></li>
+                        <li><a href="{{ url_for('settings.index') }}">Account</a></li>
                         <li><a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm">Logout</a></li>
                     {% endif %}
                 {% else %}
                     <!-- Not logged in -->
                     <li><a href="{{ url_for('auth.hostel_discovery') }}">Hostels</a></li>
+                    <li><a href="{{ url_for('pharmacy.marketplace') }}">🏪 Pharmacy</a></li>
                     <li><a href="{{ url_for('settings.index') }}">Settings</a></li>
                     <li><a href="{{ url_for('auth.register') }}">Register Resident</a></li>
                     <li><a href="{{ url_for('auth.register_owner') }}">Register Owner</a></li>
+                    <li><a href="{{ url_for('auth.register_shop') }}">Register Shop</a></li>
                     <li><a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm">Login</a></li>
                 {% endif %}
             </ul>

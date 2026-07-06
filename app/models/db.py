@@ -342,3 +342,165 @@ class Message(db.Model):
     
     def __repr__(self):
         return f'<Message Sender {self.sender_id} -> Receiver {self.receiver_id} at {self.created_at}>'
+
+
+# ─────────────────────────────────────────────────────────────────
+# Pharmacy / Medical Store Module Models
+# ─────────────────────────────────────────────────────────────────
+
+class Shop(db.Model):
+    """Shop model representing a licensed medical/pharmacy store on the platform"""
+    __tablename__ = 'shops'
+
+    id = db.Column(db.Integer, primary_key=True)
+    owner_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    shop_name = db.Column(db.String(150), nullable=False)
+    license_number = db.Column(db.String(100), nullable=False)
+    location = db.Column(db.String(250), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    contact_phone = db.Column(db.String(20), nullable=True)
+    contact_email = db.Column(db.String(120), nullable=True)
+    verification_status = db.Column(db.String(20), nullable=False, default='Pending')  # 'Pending', 'Approved', 'Rejected'
+    rating_avg = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    owner = db.relationship('User', backref='shops', foreign_keys=[owner_id])
+    medicines = db.relationship('Medicine', backref='shop', lazy=True, cascade='all, delete-orphan')
+    orders = db.relationship('MedicineOrder', backref='shop', lazy=True)
+
+    @property
+    def approved_medicines_count(self):
+        return Medicine.query.filter_by(shop_id=self.id, is_available=True).count()
+
+    @property
+    def total_reviews(self):
+        count = 0
+        for med in self.medicines:
+            count += len(med.reviews)
+        return count
+
+    def recalculate_rating(self):
+        """Recalculate average rating from all medicine reviews in this shop"""
+        total, count = 0, 0
+        for med in self.medicines:
+            for review in med.reviews:
+                total += review.rating
+                count += 1
+        self.rating_avg = round(total / count, 1) if count > 0 else 0.0
+
+    def __repr__(self):
+        return f'<Shop {self.shop_name} - Status {self.verification_status}>'
+
+
+class Medicine(db.Model):
+    """Medicine/product model in a medical store inventory"""
+    __tablename__ = 'medicines'
+
+    id = db.Column(db.Integer, primary_key=True)
+    shop_id = db.Column(db.Integer, db.ForeignKey('shops.id'), nullable=False)
+    name = db.Column(db.String(200), nullable=False)
+    price = db.Column(db.Float, nullable=False)
+    photo_path = db.Column(db.String(250), nullable=True)  # Relative to static/images/medicines/
+    salt_composition = db.Column(db.String(500), nullable=True)  # e.g. "Paracetamol 500mg + Ibuprofen 200mg"
+    category = db.Column(db.String(100), nullable=True)           # e.g. "Analgesic", "Antibiotic"
+    description = db.Column(db.Text, nullable=True)
+    stock_quantity = db.Column(db.Integer, nullable=False, default=0)
+    delivery_options = db.Column(db.String(100), nullable=True, default='Standard')  # Comma-separated: 'Express,Standard'
+    payment_options = db.Column(db.String(100), nullable=True, default='UPI,COD')    # Comma-separated: 'UPI,COD'
+    is_available = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    reviews = db.relationship('MedicineReview', backref='medicine', lazy=True, cascade='all, delete-orphan')
+    orders = db.relationship('MedicineOrder', backref='medicine', lazy=True)
+
+    @property
+    def delivery_options_list(self):
+        if not self.delivery_options:
+            return []
+        return [d.strip() for d in self.delivery_options.split(',') if d.strip()]
+
+    @property
+    def payment_options_list(self):
+        if not self.payment_options:
+            return []
+        return [p.strip() for p in self.payment_options.split(',') if p.strip()]
+
+    @property
+    def average_rating(self):
+        if not self.reviews:
+            return 0.0
+        return round(sum(r.rating for r in self.reviews) / len(self.reviews), 1)
+
+    @property
+    def photo_url(self):
+        if self.photo_path:
+            return f'/static/images/medicines/{self.photo_path}'
+        return '/static/images/default_medicine.png'
+
+    def __repr__(self):
+        return f'<Medicine {self.name} - Shop {self.shop_id} - ₹{self.price}>'
+
+
+class MedicineOrder(db.Model):
+    """Order record created when a user purchases a medicine"""
+    __tablename__ = 'medicine_orders'
+
+    id = db.Column(db.Integer, primary_key=True)
+    medicine_id = db.Column(db.Integer, db.ForeignKey('medicines.id'), nullable=False)
+    shop_id = db.Column(db.Integer, db.ForeignKey('shops.id'), nullable=False)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    total_price = db.Column(db.Float, nullable=False)
+    delivery_option = db.Column(db.String(50), nullable=False, default='Standard')  # 'Express' or 'Standard'
+    payment_option = db.Column(db.String(50), nullable=False, default='UPI')       # 'UPI' or 'COD'
+    delivery_address = db.Column(db.Text, nullable=True)     # Buyer's local campus / hostel address
+    contact_phone = db.Column(db.String(20), nullable=True)  # Buyer contact for delivery
+    receipt_path = db.Column(db.String(250), nullable=True)  # Proof of payment (for UPI orders)
+    status = db.Column(db.String(20), nullable=False, default='Pending')  # 'Pending', 'Confirmed', 'Rejected'
+    # Delivery pipeline status (only relevant for Confirmed orders)
+    delivery_status = db.Column(db.String(30), nullable=False, default='Order Placed')
+    # Stages: 'Order Placed' -> 'Confirmed' -> 'Packed' -> 'Out for Delivery' -> 'Delivered'
+    notes = db.Column(db.Text, nullable=True)  # Buyer notes / special requests
+    rejection_reason = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    buyer = db.relationship('User', backref='medicine_orders', foreign_keys=[buyer_id])
+
+    # Ordered list of all delivery stages for progress tracking
+    DELIVERY_STAGES = ['Order Placed', 'Confirmed', 'Packed', 'Out for Delivery', 'Delivered']
+
+    @property
+    def delivery_stage_index(self):
+        """Return 0-based index of the current delivery_status in the pipeline"""
+        try:
+            return self.DELIVERY_STAGES.index(self.delivery_status)
+        except ValueError:
+            return 0
+
+    def __repr__(self):
+        return f'<MedicineOrder #{self.id} - Medicine {self.medicine_id} - Buyer {self.buyer_id} - Status {self.status} - Delivery {self.delivery_status}>'
+
+
+
+class MedicineReview(db.Model):
+    """Customer review and star rating for a medicine"""
+    __tablename__ = 'medicine_reviews'
+
+    id = db.Column(db.Integer, primary_key=True)
+    medicine_id = db.Column(db.Integer, db.ForeignKey('medicines.id'), nullable=False)
+    reviewer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)  # 1-5 integer rating
+    comment = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Relationships
+    reviewer = db.relationship('User', backref='medicine_reviews', foreign_keys=[reviewer_id])
+
+    def __repr__(self):
+        return f'<MedicineReview Medicine {self.medicine_id} - Rating {self.rating}/5 by User {self.reviewer_id}>'

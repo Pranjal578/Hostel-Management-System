@@ -374,6 +374,48 @@ def register_owner():
     return render_template('owner_register.html')
 
 
+@auth_bp.route('/register/shop', methods=['GET', 'POST'])
+@limiter.limit("10 per hour")
+def register_shop():
+    """ShopOwner self-registration page — account is Pending admin approval"""
+    if 'user_id' in session:
+        return redirect(url_for('auth.dashboard_redirect'))
+
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        full_name = request.form.get('full_name', '').strip()
+        phone = request.form.get('phone', '').strip()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+
+        if not full_name or not email:
+            flash('Full name and email are required.', 'danger')
+            return render_template('register_shop.html')
+
+        if password != confirm_password:
+            flash('Passwords do not match.', 'danger')
+            return render_template('register_shop.html')
+
+        if len(password) < 8:
+            flash('Password must be at least 8 characters.', 'danger')
+            return render_template('register_shop.html')
+
+        if User.query.filter_by(email=email).first():
+            flash('This email is already registered.', 'danger')
+            return render_template('register_shop.html')
+
+        shop_owner = User(email=email, role='ShopOwner', full_name=full_name, phone=phone)
+        shop_owner.set_password(password)
+        db.session.add(shop_owner)
+        db.session.commit()
+
+        log_security_action(shop_owner.id, "Self-registered as ShopOwner")
+        flash('Shop owner account created! Log in and then complete your shop profile — a SuperAdmin will review and approve it.', 'success')
+        return redirect(url_for('auth.login'))
+
+    return render_template('register_shop.html')
+
+
 @auth_bp.route('/hostels')
 def hostel_discovery():
     """Public hostel discovery page — card view of all registered hostels"""
@@ -416,7 +458,9 @@ def dashboard_redirect():
             return redirect(url_for('owner.dashboard'))
         elif user.role == 'Resident':
             return redirect(url_for('resident.dashboard'))
-            
+        elif user.role == 'ShopOwner':
+            return redirect(url_for('pharmacy.shop_dashboard'))
+
     session.clear()
     return redirect(url_for('auth.login'))
 

@@ -189,3 +189,45 @@ def delete_owner(owner_id):
     log_security_action(session['user_id'], f"Deleted owner account: {email}")
     flash(f"Owner {email} deleted successfully.", 'success')
     return redirect(url_for('admin.owners_list'))
+
+
+# ─── Pharmacy / Shop Approval ───────────────────────────────────────────────
+
+@admin_bp.route('/shops')
+@role_required('SuperAdmin')
+def shops_list():
+    """List all registered shops with their verification status"""
+    from app.models.db import Shop
+    pending_shops = Shop.query.filter_by(verification_status='Pending').all()
+    approved_shops = Shop.query.filter_by(verification_status='Approved').all()
+    rejected_shops = Shop.query.filter_by(verification_status='Rejected').all()
+    return render_template('admin_shops.html',
+                           pending_shops=pending_shops,
+                           approved_shops=approved_shops,
+                           rejected_shops=rejected_shops)
+
+
+@admin_bp.route('/shops/<int:shop_id>/approve', methods=['POST'])
+@role_required('SuperAdmin')
+def approve_shop(shop_id):
+    """Approve a pending shop, making it publicly visible on the marketplace"""
+    from app.models.db import Shop
+    shop = Shop.query.get_or_404(shop_id)
+    shop.verification_status = 'Approved'
+    db.session.commit()
+    log_security_action(session['user_id'], f"Approved shop '{shop.shop_name}' (ID {shop.id})")
+    flash(f'Shop "{shop.shop_name}" approved and is now live on the marketplace.', 'success')
+    return redirect(url_for('admin.shops_list'))
+
+
+@admin_bp.route('/shops/<int:shop_id>/reject', methods=['POST'])
+@role_required('SuperAdmin')
+def reject_shop(shop_id):
+    """Reject a pending or previously approved shop"""
+    from app.models.db import Shop
+    shop = Shop.query.get_or_404(shop_id)
+    shop.verification_status = 'Rejected'
+    db.session.commit()
+    log_security_action(session['user_id'], f"Rejected shop '{shop.shop_name}' (ID {shop.id})")
+    flash(f'Shop "{shop.shop_name}" has been rejected.', 'warning')
+    return redirect(url_for('admin.shops_list'))

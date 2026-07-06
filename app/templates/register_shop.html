@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Register as Shop Owner — ROOMMET{% endblock %}
+
+{% block content %}
+<div style="max-width: 520px; margin: 3rem auto;">
+    <div class="bento-card glass-liquid" style="padding: 2.5rem;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="font-size: 3rem; margin-bottom: 0.5rem;">🏥</div>
+            <h1 style="font-size: 1.7rem; margin-bottom: 0.3rem;">Register as Shop Owner</h1>
+            <p style="color: var(--text-muted); font-size: 0.88rem; margin: 0;">Create your account. Then log in and complete your shop profile for admin approval.</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.register_shop') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group" style="margin-bottom: 1.2rem;">
+                <label class="form-label" for="full_name">Full Name *</label>
+                <input type="text" id="full_name" name="full_name" class="form-control tactile-inset" placeholder="Your full name" required autofocus>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.2rem;">
+                <label class="form-label" for="email">Email Address *</label>
+                <input type="email" id="email" name="email" class="form-control tactile-inset" placeholder="your@email.com" required>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.2rem;">
+                <label class="form-label" for="phone">Phone Number</label>
+                <input type="tel" id="phone" name="phone" class="form-control tactile-inset" placeholder="e.g. 9876543210">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.2rem;">
+                <label class="form-label" for="password">Password *</label>
+                <input type="password" id="password" name="password" class="form-control tactile-inset" placeholder="Minimum 8 characters" required minlength="8">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.8rem;">
+                <label class="form-label" for="confirm_password">Confirm Password *</label>
+                <input type="password" id="confirm_password" name="confirm_password" class="form-control tactile-inset" placeholder="Re-enter password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary tactile-outset" style="width: 100%; font-size: 1rem; padding: 0.9rem;">Create Shop Owner Account</button>
+        </form>
+
+        <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 1.5rem;">
+            Already have an account? <a href="{{ url_for('auth.login') }}" style="color: var(--primary);">Login</a>
+        </p>
+        <p style="text-align: center; color: var(--text-muted); font-size: 0.82rem;">
+            Registering as a resident instead? <a href="{{ url_for('auth.register') }}" style="color: var(--primary);">Resident Registration</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

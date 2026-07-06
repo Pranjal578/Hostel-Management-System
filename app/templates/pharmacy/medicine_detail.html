@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}{{ medicine.name }} — ROOMMET Pharmacy{% endblock %}
+
+{% block extra_css %}
+<style>
+.star-rating { display: flex; flex-direction: row-reverse; gap: 4px; }
+.star-rating input { display: none; }
+.star-rating label { font-size: 2rem; color: rgba(255,255,255,0.2); cursor: pointer; transition: color 0.2s; }
+.star-rating input:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label { color: #f59e0b; }
+.star-display { color: #f59e0b; font-size: 1.1rem; }
+.option-pill { display: inline-flex; align-items: center; gap: 6px; background: rgba(124,58,237,.12); border: 1px solid rgba(124,58,237,.25); color: var(--primary); font-size: 0.8rem; padding: 4px 12px; border-radius: 20px; margin: 3px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+<div style="margin-top: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem; color: var(--text-muted);">
+    <a href="{{ url_for('pharmacy.marketplace') }}" style="color: var(--primary);">Marketplace</a>
+    <span style="margin: 0 0.5rem;">›</span>
+    <a href="{{ url_for('pharmacy.shop_detail', shop_id=shop.id) }}" style="color: var(--primary);">{{ shop.shop_name }}</a>
+    <span style="margin: 0 0.5rem;">›</span> {{ medicine.name }}
+</div>
+
+<div class="bento-grid">
+    <!-- Medicine Info & Image -->
+    <div class="bento-card glass-liquid col-7" style="padding: 2rem;">
+        <div style="width: 100%; max-height: 320px; border-radius: 12px; overflow: hidden; margin-bottom: 1.5rem; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center;">
+            <img src="{{ medicine.photo_url }}" alt="{{ medicine.name }}" style="max-width: 100%; max-height: 320px; object-fit: contain;" onerror="this.onerror=null; this.style.display='none'; this.parentElement.innerHTML='<span style=\'font-size:5rem;\'>💊</span>'">
+        </div>
+        <h1 style="font-size: 1.6rem; margin: 0 0 0.5rem;">{{ medicine.name }}</h1>
+        {% if medicine.category %}<span style="background: rgba(124,58,237,.15); border: 1px solid rgba(124,58,237,.3); color: var(--primary); font-size: 0.78rem; padding: 3px 10px; border-radius: 20px;">{{ medicine.category }}</span>{% endif %}
+        <div style="font-size: 2rem; font-weight: 800; color: var(--primary); margin: 1rem 0 0.5rem;">₹{{ medicine.price }}</div>
+        {% if medicine.average_rating > 0 %}
+        <div class="star-display" style="margin-bottom: 0.5rem;">{{ '★' * medicine.average_rating|int }}{{ '☆' * (5 - medicine.average_rating|int) }} <span style="color: var(--text-muted); font-size: 0.85rem;">{{ medicine.average_rating }}/5 ({{ medicine.reviews|length }} reviews)</span></div>
+        {% endif %}
+
+        {% if medicine.salt_composition %}
+        <div style="background: rgba(0,0,0,0.2); border-radius: 10px; padding: 1rem; margin: 1rem 0; border: 1px solid var(--glass-border);">
+            <p style="color: var(--text-muted); font-size: 0.78rem; margin: 0 0 0.3rem; text-transform: uppercase; letter-spacing: 0.05em;">Salt Composition</p>
+            <p style="color: var(--text-primary); margin: 0; font-size: 0.9rem;">{{ medicine.salt_composition }}</p>
+        </div>
+        {% endif %}
+
+        {% if medicine.description %}<p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6;">{{ medicine.description }}</p>{% endif %}
+
+        <div style="margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+            {% if 'Express' in medicine.delivery_options_list %}<span class="option-pill">⚡ Express Delivery</span>{% endif %}
+            {% if 'Standard' in medicine.delivery_options_list %}<span class="option-pill">📦 Standard Delivery</span>{% endif %}
+            {% if 'UPI' in medicine.payment_options_list %}<span class="option-pill">💳 UPI Accepted</span>{% endif %}
+            {% if 'COD' in medicine.payment_options_list %}<span class="option-pill">💵 Cash on Delivery</span>{% endif %}
+        </div>
+        <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 1rem;">Stock: <strong>{{ medicine.stock_quantity }}</strong> units available</p>
+    </div>
+
+    <!-- Order Form -->
+    <div class="col-5">
+        <div class="bento-card glass-minimal" style="padding: 2rem; margin-bottom: 1.5rem;">
+            <h3 style="margin-top: 0; color: var(--primary);">🛒 Place Order</h3>
+            {% if session.get('user_id') %}
+            <form method="POST" action="{{ url_for('pharmacy.place_order', medicine_id=medicine.id) }}" enctype="multipart/form-data">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group" style="margin-bottom: 1.2rem;">
+                    <label class="form-label">Quantity</label>
+                    <input type="number" name="quantity" min="1" max="{{ medicine.stock_quantity }}" value="1" class="form-control tactile-inset">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.2rem;">
+                    <label class="form-label">Delivery Option</label>
+                    <select name="delivery_option" class="form-control tactile-inset">
+                        {% for opt in medicine.delivery_options_list %}<option value="{{ opt }}">{{ opt }} Delivery</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 1.2rem;">
+                    <label class="form-label">Payment Option</label>
+                    <select name="payment_option" class="form-control tactile-inset">
+                        {% for opt in medicine.payment_options_list %}<option value="{{ opt }}">{{ opt }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 1.2rem;">
+                    <label class="form-label">Delivery Address <span style="color:var(--text-muted)">(hostel room / campus address)</span></label>
+                    <textarea name="delivery_address" rows="2" class="form-control tactile-inset" placeholder="e.g. Room 204, Block B, Main Hostel Campus" required></textarea>
+                </div>
+                <div class="form-group" style="margin-bottom: 1.2rem;">
+                    <label class="form-label">Contact Phone</label>
+                    <input type="tel" name="contact_phone" class="form-control tactile-inset" placeholder="Your phone number" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 1.2rem;">
+                    <label class="form-label">Payment Receipt <span style="color:var(--text-muted)">(for UPI — optional for COD)</span></label>
+                    <input type="file" name="receipt_file" accept="image/*,.pdf" class="form-control tactile-inset">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label class="form-label">Notes / Special Requests</label>
+                    <textarea name="notes" rows="2" class="form-control tactile-inset" placeholder="Any special instructions..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary tactile-outset" style="width: 100%;">✅ Place Order</button>
+            </form>
+            {% else %}
+            <p style="color: var(--text-muted); text-align: center; padding: 1rem 0;">Please <a href="{{ url_for('auth.login') }}" style="color: var(--primary);">log in</a> to place an order.</p>
+            {% endif %}
+        </div>
+
+        <!-- Shop Info -->
+        <div class="bento-card glass-minimal" style="padding: 1.5rem;">
+            <h4 style="margin-top: 0; font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Sold By</h4>
+            <p style="font-size: 1rem; font-weight: 700; margin: 0 0 0.3rem;">{{ shop.shop_name }}</p>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0 0 0.5rem;">📍 {{ shop.location }}</p>
+            {% if shop.contact_phone %}<p style="color: var(--text-muted); font-size: 0.82rem; margin: 0;">📞 {{ shop.contact_phone }}</p>{% endif %}
+            <a href="{{ url_for('pharmacy.shop_detail', shop_id=shop.id) }}" style="display: block; margin-top: 0.75rem; color: var(--primary); font-size: 0.85rem;">View all medicines from this shop →</a>
+        </div>
+    </div>
+</div>
+
+<!-- Reviews Section -->
+<div class="bento-card glass-minimal" style="margin-top: 2rem; padding: 2rem;">
+    <h3 style="margin-top: 0;">⭐ Customer Reviews</h3>
+
+    <!-- Submit review form -->
+    {% if session.get('user_id') and not already_reviewed %}
+    <div style="background: rgba(0,0,0,0.2); border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; border: 1px solid var(--glass-border);">
+        <h4 style="margin-top: 0; color: var(--text-secondary);">Write a Review</h4>
+        <form method="POST" action="{{ url_for('pharmacy.submit_review', medicine_id=medicine.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div style="margin-bottom: 1rem;">
+                <label class="form-label">Your Rating</label>
+                <div class="star-rating">
+                    {% for i in range(5, 0, -1) %}
+                    <input type="radio" name="rating" id="star{{ i }}" value="{{ i }}" {% if i == 5 %}checked{% endif %}>
+                    <label for="star{{ i }}">★</label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+                <label class="form-label">Comment <span style="color:var(--text-muted)">(optional)</span></label>
+                <textarea name="comment" rows="2" class="form-control tactile-inset" placeholder="Share your experience..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Submit Review</button>
+        </form>
+    </div>
+    {% elif already_reviewed %}
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem; padding: 0.75rem 1rem; background: rgba(0,0,0,0.2); border-radius: 8px;">✅ You have already reviewed this medicine.</p>
+    {% endif %}
+
+    <!-- Reviews list -->
+    {% if medicine.reviews %}
+        {% for review in medicine.reviews|sort(attribute='created_at', reverse=True) %}
+        <div style="padding: 1rem 0; border-bottom: 1px solid var(--glass-border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem;">{{ review.reviewer.full_name[0] if review.reviewer.full_name else '?' }}</div>
+                    <div>
+                        <strong style="font-size: 0.9rem;">{{ review.reviewer.full_name or review.reviewer.email }}</strong>
+                        <span class="star-display" style="font-size: 0.85rem; margin-left: 0.5rem;">{{ '★' * review.rating }}{{ '☆' * (5 - review.rating) }}</span>
+                    </div>
+                </div>
+                <span style="color: var(--text-muted); font-size: 0.75rem;">{{ review.created_at.strftime('%b %d, %Y') }}</span>
+            </div>
+            {% if review.comment %}<p style="color: var(--text-secondary); font-size: 0.88rem; margin: 0 0 0 3rem;">{{ review.comment }}</p>{% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+    <p style="color: var(--text-muted); text-align: center; padding: 2rem 0;">No reviews yet. Be the first to review!</p>
+    {% endif %}
+</div>
+{% endblock %}
