@@ -13,8 +13,9 @@ def get_resident_details(resident_id):
     # Enforce Hostel Owner scope isolation
     user = User.query.get(session['user_id'])
     if user.role == 'HostelOwner':
-        hostel = Hostel.query.filter_by(owner_id=user.id).first()
-        if not hostel or resident.hostel_id != hostel.id:
+        # Owner is authorized if they manage the hostel associated with this resident
+        hostel = Hostel.query.filter_by(id=resident.hostel_id, owner_id=user.id).first()
+        if not hostel:
             return jsonify({'error': 'Access denied. Resident belongs to a different hostel.'}), 403
 
     # Fetch payments history

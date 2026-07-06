@@ -63,7 +63,7 @@
                                 <img src="{{ r.profile_image and '/static/images/' + r.profile_image or '/static/images/default_profile.png' }}" 
                                      alt="Profile" 
                                      style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover; border: 1px solid var(--glass-border);"
-                                     onerror="this.src='/static/images/default_profile.png'">
+                                     onerror="this.onerror=null; this.src='/static/images/default_profile.png';">
                                 <span>{{ r.full_name }}</span>
                             </div>
                         </td>

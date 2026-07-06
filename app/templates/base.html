@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/default_profile.png') }}">
+    <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpg') }}">
     
     <script>
         (function() {
@@ -26,8 +26,9 @@
     <!-- Glass Navigation Bar -->
     <nav class="navbar">
         <div class="container">
-            <a href="{{ url_for('index') }}" class="navbar-brand">
-                🏠 ROOMMET
+            <a href="{{ url_for('index') }}" class="navbar-brand" style="display: flex; align-items: center; gap: 0.6rem;">
+                <img src="/static/images/logo.jpg" alt="Logo" style="height: 32px; width: 32px; border-radius: 8px; object-fit: cover;" onerror="this.onerror=null; this.src='/static/images/default_profile.png';">
+                ROOMMET
             </a>
             
             <button class="menu-toggle" id="menuToggle">☰</button>

@@ -29,6 +29,16 @@ def dashboard():
     user_id = session['user_id']
     resident = Resident.query.filter_by(user_id=user_id).first_or_404()
     
+    # Self-heal missing QR code
+    qr_path = os.path.join(current_app.root_path, 'static', 'qr', f"{resident.id}.png")
+    if not os.path.exists(qr_path):
+        try:
+            from app.utils.qr_generator import generate_qr_code
+            generate_qr_code(resident.id)
+            print(f"[OK] Self-healed missing QR code for resident {resident.id}")
+        except Exception as e:
+            print(f"[ERROR] Failed to self-heal QR code: {e}")
+            
     # Safely fetch hostel notices
     hostel_notices = []
     try:
@@ -49,6 +59,7 @@ def dashboard():
         hostel_notices=hostel_notices,
         is_public=False
     )
+
 
 
 @resident_bp.route('/payments', methods=['GET'])

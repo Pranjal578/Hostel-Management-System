@@ -109,22 +109,49 @@
 </div>
 
 <!-- Modal 1: Image/PDF Receipt Secure Viewer -->
-<div class="modal" id="receiptModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); z-index: 2000; align-items: center; justify-content: center; padding: 20px;">
-    <div class="bento-card glass-liquid" style="max-width: 650px; width: 100%; padding: 2rem; position: relative;">
-        <button class="modal-close" onclick="closeModal('receiptModal')" style="position: absolute; top: 1rem; right: 1rem; border: none; background: transparent; font-size: 1.5rem; color: var(--text-secondary); cursor: pointer;">✕</button>
-        <h3 id="receiptModalTitle" style="margin-top: 0; margin-bottom: 1.5rem; color: var(--primary);">Receipt Document Proof</h3>
-        <div style="display: flex; justify-content: center; background: rgba(0,0,0,0.3); border-radius: var(--radius-md); padding: 1rem; border: 1px solid var(--glass-border); min-height: 250px; align-items: center;">
-            <img id="receiptImage" src="" alt="Receipt proof" style="max-width: 100%; max-height: 400px; display: none; object-fit: contain;">
-            <iframe id="receiptPDF" src="" style="width: 100%; height: 400px; border: none; display: none;"></iframe>
+<div id="receiptModal" onclick="handleModalBackdropClick(event, 'receiptModal')" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); z-index: 2000; align-items: center; justify-content: center; padding: 20px; overflow-y: auto;">
+    <div id="receiptModalInner" class="bento-card glass-liquid" style="max-width: 700px; width: 100%; padding: 2rem; position: relative;" onclick="event.stopPropagation()">
+        <button onclick="closeModal('receiptModal')" style="position: absolute; top: 1rem; right: 1rem; border: none; background: rgba(255,255,255,0.08); border-radius: 50%; width: 36px; height: 36px; font-size: 1.2rem; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: var(--transition);" onmouseover="this.style.background='rgba(255,255,255,0.16)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">✕</button>
+        <h3 id="receiptModalTitle" style="margin-top: 0; margin-bottom: 1.5rem; color: var(--primary); padding-right: 2.5rem;">Receipt Document Proof</h3>
+
+        <!-- Loading state -->
+        <div id="receiptLoading" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 250px; color: var(--text-muted); gap: 1rem;">
+            <div style="width: 40px; height: 40px; border: 3px solid var(--glass-border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+            <p style="margin: 0; font-size: 0.9rem;">Loading receipt...</p>
+        </div>
+
+        <!-- Image viewer -->
+        <div id="receiptImageContainer" style="display: none; justify-content: center; background: rgba(0,0,0,0.3); border-radius: var(--radius-md); padding: 1rem; border: 1px solid var(--glass-border); min-height: 250px; align-items: center;">
+            <img id="receiptImage" src="" alt="Receipt proof" style="max-width: 100%; max-height: 500px; object-fit: contain; border-radius: 8px;"
+                 onload="receiptImageLoaded()"
+                 onerror="receiptImageError()">
+        </div>
+
+        <!-- Error state -->
+        <div id="receiptError" style="display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 250px; gap: 1rem; text-align: center;">
+            <div style="font-size: 3rem;">⚠️</div>
+            <p style="color: var(--text-secondary); margin: 0;">Receipt could not be displayed inline.</p>
+            <a id="receiptDirectLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary tactile-outset" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+                🔗 Open Receipt in New Tab
+            </a>
+        </div>
+
+        <!-- PDF fallback: open in new tab -->
+        <div id="receiptPDFNotice" style="display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 250px; gap: 1rem; text-align: center;">
+            <div style="font-size: 3rem;">📄</div>
+            <p style="color: var(--text-secondary); margin: 0;">This is a PDF receipt. Click below to open it.</p>
+            <a id="receiptPDFLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-primary tactile-outset" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+                📄 Open PDF Receipt
+            </a>
         </div>
     </div>
 </div>
 
 <!-- Modal 2: Rejection Reason Form -->
-<div class="modal" id="rejectModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); z-index: 2000; align-items: center; justify-content: center; padding: 20px;">
-    <div class="bento-card glass-liquid" style="max-width: 480px; width: 100%; padding: 2rem; position: relative;">
-        <button class="modal-close" onclick="closeModal('rejectModal')" style="position: absolute; top: 1rem; right: 1rem; border: none; background: transparent; font-size: 1.5rem; color: var(--text-secondary); cursor: pointer;">✕</button>
-        <h3 style="margin-top: 0; color: var(--danger); margin-bottom: 1rem;">Reject Payment Proof</h3>
+<div id="rejectModal" onclick="handleModalBackdropClick(event, 'rejectModal')" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px); z-index: 2000; align-items: center; justify-content: center; padding: 20px;">
+    <div class="bento-card glass-liquid" style="max-width: 480px; width: 100%; padding: 2rem; position: relative;" onclick="event.stopPropagation()">
+        <button onclick="closeModal('rejectModal')" style="position: absolute; top: 1rem; right: 1rem; border: none; background: rgba(255,255,255,0.08); border-radius: 50%; width: 36px; height: 36px; font-size: 1.2rem; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center;" onmouseover="this.style.background='rgba(255,255,255,0.16)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'">✕</button>
+        <h3 style="margin-top: 0; color: var(--danger); margin-bottom: 1rem; padding-right: 2.5rem;">Reject Payment Proof</h3>
         <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">State the reason why you are rejecting this payment receipt (e.g. invalid transaction reference ID, incorrect amount). An email notification will be sent to the resident.</p>
         
         <form id="rejectionForm" method="POST" action="">
@@ -137,35 +164,93 @@
         </form>
     </div>
 </div>
+
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+    let currentReceiptPath = '';
+
     function openPaymentReceipt(path, residentName, amount) {
-        document.getElementById('receiptModalTitle').innerText = `${residentName} - ${amount}`;
-        const imgEl = document.getElementById('receiptImage');
-        const pdfEl = document.getElementById('receiptPDF');
-        
-        if (path.toLowerCase().endsWith('.pdf')) {
-            imgEl.style.display = 'none';
-            pdfEl.src = path;
-            pdfEl.style.display = 'block';
-        } else {
-            pdfEl.style.display = 'none';
-            imgEl.src = path;
-            imgEl.style.display = 'block';
-        }
-        
+        currentReceiptPath = path;
+        document.getElementById('receiptModalTitle').innerText = residentName + ' — ' + amount;
+
+        // Reset all states
+        document.getElementById('receiptLoading').style.display = 'flex';
+        document.getElementById('receiptImageContainer').style.display = 'none';
+        document.getElementById('receiptError').style.display = 'none';
+        document.getElementById('receiptPDFNotice').style.display = 'none';
+        document.getElementById('receiptImage').src = '';
+
+        // Show modal
         document.getElementById('receiptModal').style.display = 'flex';
+
+        const isPDF = path.toLowerCase().endsWith('.pdf');
+
+        if (isPDF) {
+            // For PDFs: skip inline (can freeze browsers), just show link
+            document.getElementById('receiptLoading').style.display = 'none';
+            document.getElementById('receiptPDFLink').href = path;
+            document.getElementById('receiptPDFNotice').style.display = 'flex';
+        } else {
+            // For images: attempt inline load with timeout fallback
+            const img = document.getElementById('receiptImage');
+            img.src = path;
+            document.getElementById('receiptDirectLink').href = path;
+
+            // Fallback timeout: if image doesn't load in 8s, show error
+            window._receiptLoadTimeout = setTimeout(() => {
+                receiptImageError();
+            }, 8000);
+        }
+    }
+
+    function receiptImageLoaded() {
+        clearTimeout(window._receiptLoadTimeout);
+        document.getElementById('receiptLoading').style.display = 'none';
+        document.getElementById('receiptImageContainer').style.display = 'flex';
+    }
+
+    function receiptImageError() {
+        clearTimeout(window._receiptLoadTimeout);
+        document.getElementById('receiptLoading').style.display = 'none';
+        document.getElementById('receiptImageContainer').style.display = 'none';
+        document.getElementById('receiptImage').src = '';
+        document.getElementById('receiptDirectLink').href = currentReceiptPath;
+        document.getElementById('receiptError').style.display = 'flex';
     }
 
     function openRejectionModal(paymentId) {
-        document.getElementById('rejectionForm').action = `/owner/payment/reject/${paymentId}`;
+        document.getElementById('rejectionForm').action = '/owner/payment/reject/' + paymentId;
         document.getElementById('rejectModal').style.display = 'flex';
     }
 
     function closeModal(modalId) {
         document.getElementById(modalId).style.display = 'none';
+        // Clear sources to stop any ongoing network requests
+        if (modalId === 'receiptModal') {
+            clearTimeout(window._receiptLoadTimeout);
+            document.getElementById('receiptImage').src = '';
+            currentReceiptPath = '';
+        }
     }
+
+    function handleModalBackdropClick(event, modalId) {
+        // Close when clicking the dark overlay (not the modal card itself)
+        if (event.target.id === modalId) {
+            closeModal(modalId);
+        }
+    }
+
+    // Close modals on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            if (document.getElementById('receiptModal').style.display === 'flex') closeModal('receiptModal');
+            if (document.getElementById('rejectModal').style.display === 'flex') closeModal('rejectModal');
+        }
+    });
 </script>
 {% endblock %}

@@ -4,8 +4,11 @@
 
 {% block content %}
 <!-- Hero Section -->
-<div style="text-align: center; padding: 4rem 1.5rem; margin-bottom: 2rem;">
-    <h1 style="font-size: 3rem; margin-bottom: 1rem; background: linear-gradient(135deg, var(--text-primary) 0%, var(--primary) 50%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 10px rgba(56,189,248,0.15));">🏠 ROOMMET</h1>
+<div style="text-align: center; padding: 3rem 1.5rem; margin-bottom: 2rem;">
+    <div style="margin-bottom: 1.5rem; display: flex; justify-content: center;">
+        <img src="/static/images/logo.jpg" alt="ROOMMET Logo" style="height: 100px; width: 100px; border-radius: 24px; box-shadow: 0 0 30px var(--primary-glow); border: 2px solid var(--primary); object-fit: cover;" onerror="this.onerror=null; this.src='/static/images/default_profile.png';">
+    </div>
+    <h1 style="font-size: 3rem; margin-bottom: 1rem; background: linear-gradient(135deg, var(--text-primary) 0%, var(--primary) 50%, var(--accent) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 10px rgba(56,189,248,0.15));">ROOMMET</h1>
     <p style="font-size: 1.25rem; color: var(--text-secondary); max-width: 600px; margin: 0 auto 2.5rem auto;">A modern, digital-first resident directory featuring individual room allotment, secure access, and dynamic QR profiling.</p>
     
     <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">

@@ -11,7 +11,7 @@
             <img src="{{ resident.profile_image and '/static/images/' + resident.profile_image or '/static/images/default_profile.png' }}" 
                  alt="{{ resident.full_name }}" 
                  style="width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); box-shadow: 0 0 20px var(--primary-glow);"
-                 onerror="this.src='/static/images/default_profile.png'">
+                 onerror="this.onerror=null; this.src='/static/images/default_profile.png';">
         </div>
         
         <h2 style="font-size: 2.2rem; margin-bottom: 0.5rem;">{{ resident.full_name }}</h2>
@@ -54,7 +54,7 @@
         <img src="{{ resident.profile_image and '/static/images/' + resident.profile_image or '/static/images/default_profile.png' }}" 
              alt="{{ resident.full_name }}" 
              style="width: 130px; height: 130px; border-radius: var(--radius-md); object-fit: cover; border: 2px solid var(--glass-border);"
-             onerror="this.src='/static/images/default_profile.png'">
+             onerror="this.onerror=null; this.src='/static/images/default_profile.png';">
         <div>
             <h2 style="font-size: 1.8rem; margin-bottom: 0.5rem;">{{ resident.full_name }}</h2>
             <p style="margin-bottom: 0.5rem; color: var(--text-secondary); font-size: 0.95rem;">
@@ -70,7 +70,7 @@
     <div class="bento-card glass-minimal col-4" style="text-align: center; display: flex; flex-direction: column; justify-content: space-between; align-items: center;">
         <h4 style="margin: 0; color: var(--primary);">Permanent ID QR</h4>
         <div style="background: white; padding: 0.5rem; border-radius: var(--radius-sm); margin: 0.5rem 0; box-shadow: 0 0 20px var(--primary-glow); border: 2px solid var(--primary);">
-            <img src="/static/qr/{{ resident.id }}.png" alt="ID QR" style="height: 100px; display: block;" onerror="this.src='/static/images/default_profile.png'">
+            <img src="/static/qr/{{ resident.id }}.png" alt="ID QR" style="height: 100px; display: block;" onerror="this.onerror=null; this.src='/static/images/default_profile.png';">
         </div>
         <a href="/static/qr/{{ resident.id }}.png" download="resident_{{ resident.id }}_qr.png" class="btn btn-primary btn-sm" style="width: 100%;">
             📥 Download QR ID

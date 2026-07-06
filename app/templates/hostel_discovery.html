@@ -88,8 +88,12 @@
 </head>
 <body>
 <nav class="nav">
-    <a href="/" class="nav-brand">🏠 ROOMMET</a>
+    <a href="/" class="nav-brand" style="display: flex; align-items: center; gap: 0.6rem; text-decoration: none; font-weight: 800; font-size: 1.15rem; color: var(--text-primary);">
+        <img src="/static/images/logo.jpg" alt="Logo" style="height: 28px; width: 28px; border-radius: 6px; object-fit: cover;" onerror="this.onerror=null; this.src='/static/images/default_profile.png';">
+        ROOMMET
+    </a>
     <div class="nav-links">
+        <button onclick="history.back()" class="nav-link" style="background: transparent; border: 1px solid rgba(124,58,237,.35); cursor: pointer; font-family: 'Inter', sans-serif; display: inline-flex; align-items: center; gap: 6px;">← Back</button>
         <a href="/login" class="nav-link">Login</a>
         <a href="/register/owner" class="nav-link">Register as Owner</a>
         <a href="/register" class="btn-p">Register Resident →</a>

@@ -1,199 +1,294 @@
-# Secure Multi-Hostel Resident Management SaaS Platform
+# 🏠 ROOMMET — Hostel Resident Management SaaS Platform
 
-A premium, highly secure, and professional web-based Hostel Resident Management SaaS Platform. It provides a robust role-based access control system (SuperAdmin, HostelOwner, and Resident), dynamic QR-linked profiles, and secure multi-factor authentication (OTP via email or SMS).
+<p align="center">
+  <strong>A production-ready, multi-tenant hostel management platform with QR identity cards, secure payments, real-time chat, and role-based access control.</strong>
+</p>
 
-Designed with a **"Defense in Depth"** security model and a modern **Mobile-First Bento Grid** user interface.
-
----
-
-## Features & Interface Aesthetics
-
-1. **Mobile-First + Bento Grid Responsive Design**
-   * **Liquid Glassmorphism:** Subtle low-blur glass layouts (`4–8px`) on mobile viewports for smooth scrolling performance, progressively scaling up to deep refraction (`16–24px`) on desktop viewports.
-   * **Bento Grid Layout:** Fully responsive grid styling using CSS Grid that stacks seamlessly into `1fr` on mobile and scales to an enhanced 12-column grid structure on tablet and desktop screens.
-   * **Touch Target Optimization:** Guaranteed touch target dimensions (at least `44px`) across all interactive controls (buttons, links, inputs) for enhanced mobile usability.
-   * **Clean Tap States:** Touchscreen-specific media features (`@media (hover: none)`) disable sticky button hover transforms on mobile.
-
-2. **Security & Cryptography (Defense in Depth)**
-   * **AES-256 Encryption at Rest:** Personally Identifiable Information (PII) such as phone numbers, permanent addresses, and Aadhar IDs are encrypted transparently in the SQLite database using Python's standard `cryptography` Fernet library.
-   * **MFA Verification Gateways:** Secondary verification via SMS (powered by Twilio) or Email (via SMTP relay) with a 10-minute validity TTL.
-   * **Google OAuth 2.0:** Integrated Google Sign-In via Authlib for federated identity verification.
-   * **Content Security Policy (CSP):** Rigorous response headers restricting load scopes for script, style, and API resources to prevent Cross-Site Scripting (XSS) attacks.
-   * **Private Payment Receipt Store:** Uploaded receipts are saved outside the public static directory inside the private `instance/` folder with randomized UUID filenames, served through a secure check-auth endpoint.
-   * **Media Sanitization:** Profile photos and payment receipt uploads are passed through `Pillow` to strip location metadata (EXIF/GPS logs).
-   * **Session Expiry & Revocation:** Auto-session invalidation across other active devices when a user's password changes, using a tracked `password_version`.
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.11-blue?logo=python" alt="Python">
+  <img src="https://img.shields.io/badge/Flask-3.1-black?logo=flask" alt="Flask">
+  <img src="https://img.shields.io/badge/SQLAlchemy-2.0-orange" alt="SQLAlchemy">
+  <img src="https://img.shields.io/badge/License-MIT-green" alt="MIT License">
+  <img src="https://img.shields.io/badge/Docker-Ready-blue?logo=docker" alt="Docker">
+</p>
 
 ---
 
-## Project Structure
+## Overview
 
-```structure
+**ROOMMET** is a full-stack SaaS platform built for hostel operators and their residents. It provides a complete digital workflow: from resident onboarding and QR identity cards to rent payment submission and live chat — all behind a secure, role-based access control system.
+
+Built with a **Defense-in-Depth** security architecture and a modern **Glassmorphism + Bento Grid** UI.
+
+---
+
+## ✨ Feature Highlights
+
+### 👥 Three-Role Access System
+| Role | Capabilities |
+|---|---|
+| **SuperAdmin** | Create/manage hostel owners, assign hostels, view all residents globally |
+| **HostelOwner** | Manage multiple hostels, approve residents, verify payments, send notices, chat with residents |
+| **Resident** | View profile + QR ID, submit rent receipts, read notices, chat with owner |
+
+### 🔐 Security & Cryptography
+- **AES-256 Encryption at Rest** — PII fields (phone, address, Aadhar ID) are encrypted transparently in the database via Python `cryptography` Fernet
+- **MFA via OTP** — 6-digit time-limited OTP verification (10-min TTL) delivered by Email (SMTP) or SMS (Twilio)
+- **Google OAuth 2.0** — Federated sign-in via Authlib (bypasses OTP as high-assurance MFA)
+- **Content Security Policy (CSP)** — Strict response headers preventing XSS attacks
+- **CSRF Protection** — Flask-WTF CSRF tokens on all POST forms
+- **Session Invalidation** — Password change increments `password_version`, invalidating all other active sessions
+- **Private Receipt Storage** — Payment screenshots stored outside public directory with randomized UUID filenames, served through an auth-gated endpoint
+- **EXIF/GPS Metadata Stripping** — Profile photos and receipt images are sanitized via Pillow before storage
+- **Rate Limiting** — Flask-Limiter enforces per-IP request ceilings on sensitive endpoints
+
+### 📱 QR Identity System
+- Each resident gets a permanent QR code generated at registration
+- QR encodes a public verification URL (`/profile/<id>`)
+- Owners can scan QR codes directly from the Residents page using their device camera
+- QR codes are auto-regenerated (self-healing) if the file is missing
+
+### 💸 Payment Workflow
+- Residents scan hostel UPI payment QR → upload receipt screenshot or PDF
+- Receipts are stored securely and served only to authorized owners/admins
+- Owners can approve or reject with a typed reason (triggers email notification to resident)
+- Full payment history maintained per resident
+
+### 💬 Real-time Chat
+- WhatsApp-style threaded message panel between each resident and their hostel owner
+- Unread message tracking with auto-read-marking on open
+- Polling-based live update
+
+### 🏢 Multi-Hostel Management
+- A single HostelOwner account can manage multiple hostels
+- Per-hostel capacity tracking, unique join codes, facility tags, and payment QR codes
+- Hostel-level public QR codes (encode hostel info for discovery)
+
+### 🔍 Public Hostel Discovery
+- Unauthenticated users can browse all listed hostels with search, capacity status, and facilities
+- Each hostel card shows a modal with join code and hostel QR code
+
+---
+
+## 🗂 Project Structure
+
+```
 hostel_management_system/
 ├── app/
+│   ├── __init__.py              # App factory, blueprint registration, self-healing startup
 │   ├── models/
-│   │   └── db.py               # Database schema and Fernet encryption wrapper properties
+│   │   └── db.py                # SQLAlchemy models with Fernet encryption property wrappers
 │   ├── routes/
-│   │   ├── admin.py            # SuperAdmin operations (creating owners & establishing hostels)
-│   │   ├── owner.py            # Hostel Owner functions (verifying receipts, dynamic QR, settings)
-│   │   ├── resident.py         # Resident portals (rent payment proof upload, profile access)
-│   │   ├── settings.py         # Tabbed profile settings and MFA toggle settings
-│   │   ├── auth.py             # Credentials gateways, Google OAuth client, OTP flows
-│   │   └── api.py              # Scoped secure APIs for scanning resident QR cards
+│   │   ├── auth.py              # Login, OTP, Google OAuth, registration, public profile route
+│   │   ├── admin.py             # SuperAdmin: create owners, assign hostels, manage residents
+│   │   ├── owner.py             # HostelOwner: residents, payments, notices, chat, hostel settings
+│   │   ├── resident.py          # Resident: dashboard, payment upload, notices, chat
+│   │   ├── settings.py          # Profile/photo update, password change, MFA toggle
+│   │   └── api.py               # Secure JSON APIs: resident details (QR scan), chat messages
 │   ├── static/
-│   │   ├── css/style.css       # Premium responsive glassmorphic style system
-│   │   └── js/script.js        # Camera scanner interface logic
-│   ├── templates/              # HTML views (extends base.html viewport meta headers)
+│   │   ├── css/style.css        # Full glassmorphism + bento grid design system
+│   │   ├── js/script.js         # Camera QR scanner, theme toggle, UI interactions
+│   │   ├── images/              # Profile photos, logo, default avatar
+│   │   ├── qr/                  # Generated resident QR PNGs
+│   │   └── uploads/
+│   │       └── payment_qrs/     # Hostel payment UPI QR images
+│   ├── templates/               # Jinja2 HTML templates (extend base.html)
 │   └── utils/
-│       ├── encryption.py       # AES-256 cryptography helpers
-│       ├── photo_handler.py    # Metadata sanitization and private file UUID handler
-│       ├── qr_generator.py     # Dynamic profiles QR generator
-│       ├── email_sender.py     # SMTP verification mail handler
-│       └── sms_sender.py       # Twilio API SMS handler
+│       ├── encryption.py        # AES-256 Fernet helpers (encrypt/decrypt field)
+│       ├── photo_handler.py     # EXIF sanitization, file save/load, base64 dual-storage
+│       ├── qr_generator.py      # Resident & hostel QR PNG generation
+│       ├── email_sender.py      # SMTP OTP, payment status, payment submitted emails
+│       ├── sms_sender.py        # Twilio SMS OTP delivery
+│       └── otp_generator.py     # OTP generation, hashing, and validation
 ├── instance/
-│   ├── database.db             # Local SQLite database (git-ignored)
-│   └── uploads/payments/       # Secure offline receipt files
-├── app.py                      # App factory runner
-├── config.py                   # Environment configuration class definitions
-├── requirements.txt            # System dependencies manifest
-├── Dockerfile                  # Production containerization setup
-├── setup.bat / setup.sh        # Local development bootstrappers
-└── .env / .env.example         # System credentials and encryption key configurations
+│   ├── database.db              # SQLite database (git-ignored; auto-created)
+│   └── uploads/payments/        # Private payment receipt files (git-ignored)
+├── migrations/                  # Flask-Migrate Alembic migration scripts
+├── app.py                       # Application entry point
+├── wsgi.py                      # Production WSGI entry point (Gunicorn)
+├── config.py                    # DevelopmentConfig / ProductionConfig classes
+├── manage.py                    # CLI management commands (init-db, create-admin)
+├── requirements.txt             # Python dependency manifest
+├── Dockerfile                   # Production Docker image (Python 3.11-slim + Gunicorn)
+├── setup.bat                    # Windows one-click local setup bootstrapper
+├── setup.sh                     # Linux/Mac one-click local setup bootstrapper
+├── .env.example                 # Environment variable template
+└── .gitignore
 ```
 
 ---
 
-## Quick Start Guide
+## ⚡ Quick Start (Local Development)
 
 ### Prerequisites
+- Python **3.8+**
+- `pip`
+- A terminal (PowerShell, CMD, bash)
 
-* Python 3.8 or higher installed on your system.
-* A basic terminal environment (cmd, PowerShell, bash).
+### Step 1 — Clone & Configure Environment
 
-### Step 1: Initialize Local Environment Settings
+```bash
+# Copy the environment template
+copy .env.example .env       # Windows
+cp .env.example .env         # Linux/Mac
+```
 
-1. Create a copy of `.env.example` named `.env`:
-   * **Windows**: `copy .env.example .env`
-   * **Linux/Mac**: `cp .env.example .env`
-2. Open `.env` and fill in your integration variables:
-   * Generate an `ENCRYPTION_KEY` using python:
+Open `.env` and fill in your values. At minimum, generate an encryption key:
 
-     ```bash
-     python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
-     ```
+```bash
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
 
-   * Configure SMTP credentials, Twilio API tokens, and Google OAuth Client Secrets.
+Paste the output as your `ENCRYPTION_KEY` in `.env`.
 
-### Step 2: Run Setup Bootstrapper
+### Step 2 — Run the Setup Script
 
-Execute the automated script to configure virtual environments, setup directory storage, and generate database schemas:
+This creates a virtual environment, installs dependencies, creates required folders, and initializes the database:
 
-* **Windows Command Prompt:**
+```bash
+# Windows
+setup.bat
 
-  ```cmd
-  setup.bat
-  ```
+# Linux / Mac
+chmod +x setup.sh && ./setup.sh
+```
 
-* **Linux/Mac Bash Terminal:**
+### Step 3 — Start the Development Server
 
-  ```bash
-  chmod +x setup.sh
-  ./setup.sh
-  ```
+```bash
+# Activate venv (if not already active after setup)
+venv\Scripts\activate         # Windows
+source venv/bin/activate      # Linux/Mac
 
-### Step 3: Run the Development Server
+python app.py
+```
 
-1. Activate your virtual environment:
-   * **Windows:** `venv\Scripts\activate`
-   * **Linux/Mac:** `source venv/bin/activate`
-2. Start Flask:
+Open **[http://localhost:5000](http://localhost:5000)**
 
-   ```bash
-   python app.py
-   ```
+### Step 4 — Login as SuperAdmin
 
-3. Open your browser and head to: [http://localhost:5000](http://localhost:5000)
+| Field | Default Value |
+|---|---|
+| Email | `demo` (or your `ADMIN_USERNAME` in `.env`) |
+| Password | `demo` (or your `ADMIN_PASSWORD` in `.env`) |
 
-### Step 4: Login with Default SuperAdmin credentials
-
-Use the default administrator account to establish the first hostel and manager accounts:
-
-* **Username/Email:** `demo` (or custom `ADMIN_USERNAME` configured in `.env`)
-* **Password:** `demo` (or custom `ADMIN_PASSWORD` configured in `.env`)
+> ⚠️ **Change admin credentials in `.env` before deploying to production.**
 
 ---
 
-## DigitalOcean App Platform Deployment
+## 🔧 Environment Variables Reference
 
-Deploying the system using Docker and DigitalOcean's managed services ensures a robust, production-grade SaaS delivery pipeline.
+| Variable | Required | Description |
+|---|---|---|
+| `SECRET_KEY` | ✅ | Flask session signing key (random 32-byte hex) |
+| `ENCRYPTION_KEY` | ✅ | AES-256 Fernet key for PII encryption |
+| `ADMIN_USERNAME` | ✅ | SuperAdmin login email/username |
+| `ADMIN_PASSWORD` | ✅ | SuperAdmin login password |
+| `BASE_URL` | ✅ | Public base URL (used in QR codes, e.g. `https://yourdomain.com`) |
+| `DATABASE_URL` | ⚡ | PostgreSQL connection URI (auto-injected by cloud providers) |
+| `MAIL_SERVER` | ✅ | SMTP server host (e.g. `smtp.gmail.com`) |
+| `MAIL_PORT` | ✅ | SMTP port (usually `587`) |
+| `MAIL_USERNAME` | ✅ | SMTP login email |
+| `MAIL_PASSWORD` | ✅ | SMTP app password |
+| `SENDER_EMAIL` | ✅ | From address for sent emails |
+| `GOOGLE_CLIENT_ID` | ☑️ | Google OAuth 2.0 Client ID |
+| `GOOGLE_CLIENT_SECRET` | ☑️ | Google OAuth 2.0 Client Secret |
+| `TWILIO_ACCOUNT_SID` | ☑️ | Twilio SID (for SMS OTP) |
+| `TWILIO_AUTH_TOKEN` | ☑️ | Twilio Auth Token |
+| `TWILIO_PHONE_NUMBER` | ☑️ | Twilio sender phone number |
 
-### Step 1: Prepare Your Project
-
-Make sure all your source code changes are committed and pushed to your GitHub repository.
-The included [Dockerfile](file:///d:/Program%20Files/code/projects/hostel_management_system/Dockerfile) is fully configured for Python 3.11-slim, installs necessary system packages (for building modules), and binds the application to port `8080` using `gunicorn`.
-
-### Step 2: Create App on DigitalOcean App Platform
-
-1. Log in to your **DigitalOcean Control Panel**.
-2. Click **Create** in the top right, then select **Apps**.
-3. Choose **GitHub** as the source, authorize DigitalOcean access if prompted, and select your repository and deployment branch (e.g., `main`).
-4. Click **Next**.
-
-### Step 3: Configure Resources & Database
-
-1. DigitalOcean will automatically detect the `Dockerfile` at the root of the project.
-2. Under **HTTP Routes**, ensure the port is set to `8080` (this matches the `gunicorn` bind command in the Dockerfile).
-3. Under **Resources**, click **Add Database**.
-   * Select **PostgreSQL** as the database engine.
-   * Choose the cluster size and plan that suits your volume.
-   * DigitalOcean will automatically inject the connection string as the `DATABASE_URL` environment variable. Our app automatically handles converting `postgres://` prefixes to `postgresql://` so that SQLAlchemy integrates seamlessly.
-
-### Step 4: Setup Environment Variables
-
-Under the **App Settings** -> **Environment Variables** panel in DigitalOcean, manually add your system secrets (mirroring `.env` settings):
-
-* `SECRET_KEY`: (A secure random 32-byte hex key)
-* `ENCRYPTION_KEY`: (Your generated 32-byte AES Fernet encryption key)
-* `ADMIN_USERNAME`: (Production SuperAdmin email/username)
-* `ADMIN_PASSWORD`: (Production SuperAdmin secure password)
-* `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`: (OAuth 2.0 Client credentials)
-* `MAIL_SERVER` / `MAIL_PORT` / `MAIL_USERNAME` / `MAIL_PASSWORD`: (Your SMTP server credentials)
-* `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_PHONE_NUMBER`: (Your Twilio credentials, if using SMS)
-
-### Step 5: Database Schema Initialization & Migrations
-
-The application is pre-configured with **Flask-Migrate**.
-On every startup (including when DigitalOcean spins up your Docker container), the application context automatically checks for and applies any pending migrations to ensure your SQL database is fully up-to-date with your models.
-
-Should you need to manually force table updates or verify the database state:
-
-1. Navigate to the **Console** tab of your App service component in DigitalOcean.
-2. Execute the initialization command:
-
-   ```bash
-   python manage.py init-db
-   ```
+> ✅ Required for core features &nbsp;|&nbsp; ☑️ Optional / feature-specific
 
 ---
 
-## Database Migrations (Flask-Migrate)
+## 🗄 Database Schema (Key Tables)
 
-When you modify database models in `app/models/db.py` during development, you should record and apply schema migrations:
+```
+users           → id, email, password_hash, role, otp_enabled, otp_method, password_version
+hostels         → id, owner_id, hostel_name, location, hostel_code, capacity, payment_qr_code, hostel_qr_code
+residents       → id, user_id, hostel_id, full_name, phone(enc), aadhar(enc), address(enc), room_number, status, profile_image
+payments        → id, resident_id, hostel_id, amount, payment_date, transaction_id, screenshot_path, status
+notices         → id, hostel_id, title, message, created_at
+messages        → id, sender_id, receiver_id, message_content, is_read, created_at
+audit_logs      → id, user_id, action, ip_address, created_at
+```
 
-1. **Create a migration script** (detects model changes):
+Encrypted fields are stored as AES-256 Fernet ciphertext blobs and transparently decrypted via SQLAlchemy `@property` accessors (`phone_decrypted`, `permanent_address_decrypted`, `aadhar_id_decrypted`).
 
-   ```bash
-   flask db migrate -m "Describe your schema change"
-   ```
+---
 
-2. **Apply the migration locally**:
+## 🛠 Database Migrations (Flask-Migrate)
 
-   ```bash
-   flask db upgrade
-   ```
+When you modify models in `app/models/db.py`:
 
-3. **Deploy the migration**:
-   Commit the generated script in `migrations/versions/` to your Git repository. On your next push, DigitalOcean App Platform will automatically apply the database upgrade script on startup!
+```bash
+# Generate a new migration script
+flask db migrate -m "describe your schema change"
 
-## Support & License
+# Apply it locally
+flask db upgrade
+```
 
-Distributed under the **MIT License**. For support, issues, or configuration queries, email: [pranjalshukla2222@gmail.com](mailto:pranjalshukla2222@gmail.com).
+The app automatically runs `flask db upgrade` on startup — so deployed migrations apply immediately on next restart.
+
+---
+
+## 🐳 Docker Deployment
+
+The included `Dockerfile` uses Python 3.11-slim with Gunicorn bound to port `8080`.
+
+```bash
+# Build
+docker build -t roommet .
+
+# Run
+docker run -p 8080:8080 --env-file .env roommet
+```
+
+---
+
+## ☁️ DigitalOcean App Platform Deployment
+
+1. Push your code to a GitHub repository.
+2. On DigitalOcean → **Create App** → connect GitHub repo → auto-detects `Dockerfile`.
+3. Set HTTP port to **8080**.
+4. Add a **PostgreSQL** managed database → `DATABASE_URL` is auto-injected.
+5. Add all environment variables from `.env` under **App Settings → Environment Variables**.
+6. Deploy — migrations run automatically on startup.
+
+---
+
+## 🔑 User Flows
+
+### Resident
+```
+Register (with hostel join code) → Pending Approval → Owner Approves & Assigns Room
+→ Login → Dashboard (Profile + QR ID) → Submit Monthly Rent Receipt
+→ Chat with Owner → View Notices
+```
+
+### Hostel Owner
+```
+Login → Dashboard → Approve/Reject Pending Residents
+→ Manage Hostels (join codes, QR, pricing) → Verify/Reject Payment Receipts
+→ Send Notices → Chat with Residents → Scan Resident QR for Instant Identity Check
+```
+
+### SuperAdmin
+```
+Login → Create Owner Accounts → Create & Assign Hostels
+→ View All Residents Globally → Scan QR codes → System-wide Oversight
+```
+
+---
+
+## 📜 License
+
+Distributed under the **MIT License** — free to use, modify, and distribute.
+
+---
+
+## 📬 Contact
+
+For support, issues, or feature requests:
+**[pranjalshukla2222@gmail.com](mailto:pranjalshukla2222@gmail.com)**

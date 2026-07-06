@@ -454,8 +454,9 @@ def serve_secure_receipt(filename):
     if user.role == 'SuperAdmin':
         authorized = True
     elif user.role == 'HostelOwner':
-        hostel = Hostel.query.filter_by(owner_id=user.id).first()
-        if hostel and payment.hostel_id == hostel.id:
+        # Owner is authorized if they manage the hostel associated with this payment
+        hostel = Hostel.query.filter_by(id=payment.hostel_id, owner_id=user.id).first()
+        if hostel:
             authorized = True
     elif user.role == 'Resident':
         resident = Resident.query.filter_by(user_id=user.id).first()
@@ -519,3 +520,16 @@ def hostel_view(hostel_id):
     """Dynamic public page showing hostel details and registration button"""
     hostel = Hostel.query.get_or_404(hostel_id)
     return render_template('hostel_detail.html', hostel=hostel)
+
+
+@auth_bp.route('/profile/<int:resident_id>')
+def public_profile(resident_id):
+    """Public secure verification page for a resident, scanned via ID QR code"""
+    resident = Resident.query.get_or_404(resident_id)
+    return render_template(
+        'resident_profile.html',
+        resident=resident,
+        hostel_notices=[],
+        is_public=True
+    )
+

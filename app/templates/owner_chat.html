@@ -17,7 +17,7 @@
                 <img src="{{ r.profile_image and '/static/images/' + r.profile_image or '/static/images/default_profile.png' }}" 
                      alt="Photo" 
                      style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 1px solid var(--glass-border);"
-                     onerror="this.src='/static/images/default_profile.png'">
+                     onerror="this.onerror=null; this.src='/static/images/default_profile.png';">
                 <div style="flex: 1;">
                     <div style="display: flex; justify-content: space-between; align-items: baseline;">
                         <strong style="font-size: 0.95rem; color: var(--text-primary);">{{ r.full_name }}</strong>
