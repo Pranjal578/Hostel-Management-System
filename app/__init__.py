@@ -57,6 +57,7 @@ def create_app(config_name=None):
     from app.routes.settings import settings_bp
     from app.routes.api import api_bp
     from app.routes.pharmacy import pharmacy_bp
+    from app.routes.mobile_api import mobile_api_bp
 
     app.register_blueprint(auth_bp, url_prefix='/')
     app.register_blueprint(admin_bp, url_prefix='/admin')
@@ -65,6 +66,9 @@ def create_app(config_name=None):
     app.register_blueprint(settings_bp, url_prefix='/settings')
     app.register_blueprint(api_bp, url_prefix='/api')
     app.register_blueprint(pharmacy_bp, url_prefix='/pharmacy')
+    # Mobile API uses JWT Bearer tokens — exempt from CSRF cookie checks
+    app.register_blueprint(mobile_api_bp, url_prefix='/api/mobile')
+    csrf.exempt(mobile_api_bp)
 
     # Migrate old static payment paths to secure path in db
     with app.app_context():

@@ -67,7 +67,7 @@
                         <li><a href="{{ url_for('resident.notices_page') }}">Notices</a></li>
                         <li><a href="{{ url_for('resident.payments_page') }}">Payments</a></li>
                         <li><a href="{{ url_for('resident.chat_page') }}">Chat</a></li>
-                        <li><a href="{{ url_for('pharmacy.marketplace') }}">🏪 Pharmacy</a></li>
+                        <li><a href="{{ url_for('pharmacy.marketplace') }}">Pharmacy</a></li>
                         <li><a href="{{ url_for('pharmacy.my_orders') }}">My Orders</a></li>
                         <li><a href="{{ url_for('settings.index') }}">Settings</a></li>
                         <li><a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm">Logout</a></li>
@@ -85,7 +85,10 @@
                 {% else %}
                     <!-- Not logged in -->
                     <li><a href="{{ url_for('auth.hostel_discovery') }}">Hostels</a></li>
-                    <li><a href="{{ url_for('pharmacy.marketplace') }}">🏪 Pharmacy</a></li>
+                    <li><a href="{{ url_for('pharmacy.marketplace') }}">
+                        
+                        
+                        Pharmacy</a></li>
                     <li><a href="{{ url_for('settings.index') }}">Settings</a></li>
                     <li><a href="{{ url_for('auth.register') }}">Register Resident</a></li>
                     <li><a href="{{ url_for('auth.register_owner') }}">Register Owner</a></li>

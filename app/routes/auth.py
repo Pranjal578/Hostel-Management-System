@@ -478,21 +478,36 @@ def log_security_action(user_id, action):
 
 @auth_bp.route('/secure-receipt/<filename>')
 def serve_secure_receipt(filename):
-    """Serve payment receipts securely after validating session authorization"""
+    """Serve payment receipts securely after validating session or JWT authorization."""
     import os
     from flask import abort, send_from_directory, current_app
     from app.models.db import Payment, Hostel, Resident, User
-    
-    if 'user_id' not in session:
-        abort(403)
-        
-    user = User.query.get(session['user_id'])
+
+    user = None
+
+    # ── Try Flask session first (web portal) ────────────────────
+    if 'user_id' in session:
+        user = User.query.get(session['user_id'])
+
+    # ── Fallback: try JWT Bearer token (mobile app) ─────────────
+    if user is None:
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+            try:
+                import jwt as pyjwt
+                secret = current_app.config.get('JWT_SECRET_KEY') or current_app.config.get('SECRET_KEY')
+                payload = pyjwt.decode(token, secret, algorithms=['HS256'])
+                user = User.query.get(payload.get('user_id'))
+            except Exception:
+                pass
+
     if not user:
         abort(403)
-        
+
     # Query database to check if payment exists
     payment = Payment.query.filter(Payment.screenshot_path.like(f"%{filename}")).first_or_404()
-    
+
     # Authorize access based on user role
     authorized = False
     if user.role == 'SuperAdmin':
@@ -506,12 +521,13 @@ def serve_secure_receipt(filename):
         resident = Resident.query.filter_by(user_id=user.id).first()
         if resident and payment.resident_id == resident.id:
             authorized = True
-            
+
     if not authorized:
         abort(403)
-        
+
     directory = os.path.join(current_app.instance_path, 'uploads', 'payments')
     return send_from_directory(directory, filename)
+
 
 
 @auth_bp.route('/login/google')
