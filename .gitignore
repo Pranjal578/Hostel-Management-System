@@ -78,3 +78,11 @@ app/static/images/resident_*.jpeg
 *.tmp
 *.temp
 *.bak
+
+# 9. Node.js & Frontend Build Artifacts
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.firebase/
+
