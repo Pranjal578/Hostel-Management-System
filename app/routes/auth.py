@@ -7,6 +7,10 @@ from app.utils.email_sender import send_otp_email
 from app.utils.sms_sender import send_otp_sms
 from app.utils.photo_handler import save_photo, validate_photo
 from app.utils.qr_generator import generate_qr_code
+from app.utils.validators import (
+    validate_email, validate_phone, validate_password,
+    validate_aadhar, validate_pincode, validate_text_field, collect_errors
+)
 from app import limiter, oauth
 
 auth_bp = Blueprint('auth', __name__)
@@ -30,84 +34,17 @@ def role_required(*roles):
 
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("10 per minute")
 def login():
-    """Unified login for SuperAdmin, HostelOwner, and Resident"""
-    # If already logged in, redirect
+    """Unified login portal — Google OAuth 2.0 is the mandatory authentication method."""
+    # If already logged in, redirect to respective role dashboard
     if 'user_id' in session:
         return redirect(url_for('auth.dashboard_redirect'))
 
     if request.method == 'POST':
-        email = request.form.get('email', '').strip()
-        password = request.form.get('password', '')
-
-        # Check default SuperAdmin credentials from config/env
-        admin_username = current_app.config.get('ADMIN_USERNAME', 'demo')
-        admin_password = current_app.config.get('ADMIN_PASSWORD', 'demo')
-
-        if email == admin_username and password == admin_password:
-            # Check if SuperAdmin User exists in DB, otherwise create it
-            admin_user = User.query.filter_by(email=email).first()
-            if not admin_user:
-                admin_user = User(email=email, role='SuperAdmin')
-                admin_user.set_password(password)
-                db.session.add(admin_user)
-                db.session.commit()
-            
-            session['user_id'] = admin_user.id
-            session['user_email'] = admin_user.email
-            session['user_role'] = admin_user.role
-            session['password_version'] = admin_user.password_version
-            
-            # Log action
-            log_security_action(admin_user.id, "Logged in as SuperAdmin")
-            flash('Welcome back, Super Admin!', 'success')
-            return redirect(url_for('admin.dashboard'))
-
-        # Standard User lookup
-        user = User.query.filter_by(email=email).first()
-        if user and user.check_password(password):
-            # Password verified
-            if user.is_otp_enabled():
-                # OTP is enabled - store pending user details in session
-                session['otp_pending_user_id'] = user.id
-                
-                # Generate and save OTP
-                otp_code = generate_otp(6)
-                user.otp_code = hash_otp(otp_code)
-                user.otp_expires_at = get_otp_expiry_time(10) # 10 mins expiry
-                db.session.commit()
-                
-                # Send OTP via selected method
-                user_name = user.email
-                if user.role == 'Resident' and user.resident_profile:
-                    user_name = user.resident_profile.full_name
-
-                success = False
-                msg = ""
-                if user.otp_method == 'sms' and user.role == 'Resident' and user.resident_profile:
-                    success, msg = send_otp_sms(user.resident_profile.phone_decrypted, otp_code, user_name)
-                else:
-                    # Default email delivery
-                    success, msg = send_otp_email(user.email, otp_code, user_name)
-
-                if success:
-                    flash(f'Verification code sent via {user.otp_method or "email"}.', 'info')
-                    return redirect(url_for('auth.send_otp_view'))
-                else:
-                    flash(f'Error sending verification code: {msg}. Falling back to default session.', 'warning')
-            
-            # Standard Session setup (no OTP or OTP delivery failed)
-            session['user_id'] = user.id
-            session['user_email'] = user.email
-            session['user_role'] = user.role
-            session['password_version'] = user.password_version
-            
-            log_security_action(user.id, f"Logged in successfully as {user.role}")
-            flash('Logged in successfully!', 'success')
-            return redirect(url_for('auth.dashboard_redirect'))
-        else:
-            flash('Invalid email or password.', 'danger')
+        # Direct password bypasses are disabled in favor of Google OAuth
+        flash('Password-based login is deprecated. Please click "Sign in with Google" below to authenticate securely.', 'info')
+        return redirect(url_for('auth.google_login'))
 
     return render_template('admin_login.html')
 
@@ -186,7 +123,7 @@ def resend_otp():
 
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
-@limiter.limit("10 per hour")
+@limiter.limit("5 per hour")
 def register():
     """Resident registration page"""
     if 'user_id' in session:
@@ -220,12 +157,28 @@ def register():
             prefilled_hostel = Hostel.query.filter_by(hostel_code=hostel_code).first()
 
         try:
-            email = request.form.get('email', '').strip()
-            phone = request.form.get('phone', '').strip()
-            password = request.form.get('password')
-            confirm_password = request.form.get('confirm_password')
+            email    = request.form.get('email', '').strip()
+            phone    = request.form.get('phone', '').strip()
+            password = request.form.get('password', '')
+            confirm_password = request.form.get('confirm_password', '')
+            full_name = request.form.get('full_name', '').strip()
+            pincode   = request.form.get('pincode', '').strip()
+            aadhar_raw = request.form.get('aadhar_id', '').replace('-', '').strip()
 
-            # Basic Validations
+            # ── Server-Side Field Validation ──────────────────
+            field_errors = collect_errors(
+                validate_text_field(full_name, 'Full name', 100),
+                validate_email(email),
+                validate_phone(phone),
+                validate_password(password),
+                validate_pincode(pincode),
+                validate_aadhar(aadhar_raw),
+            )
+            if field_errors:
+                for err in field_errors:
+                    flash(err, 'danger')
+                return render_register_form()
+
             if not hostel_code:
                 flash('Unique Hostel Code is required to register.', 'danger')
                 return render_register_form()
@@ -259,7 +212,6 @@ def register():
             doj = datetime.strptime(request.form['date_of_joining'], '%Y-%m-%d').date()
 
             # Format Aadhar
-            aadhar_raw = request.form.get('aadhar_id', '').replace('-', '')
             aadhar_formatted = None
             if aadhar_raw:
                 if aadhar_raw.isdigit() and len(aadhar_raw) == 12:
@@ -339,22 +291,26 @@ def register_owner():
         return redirect(url_for('auth.dashboard_redirect'))
 
     if request.method == 'POST':
-        email = request.form.get('email', '').strip()
-        password = request.form.get('password')
-        confirm_password = request.form.get('confirm_password')
+        email    = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
         full_name = request.form.get('full_name', '').strip()
-        phone = request.form.get('phone', '').strip()
+        phone     = request.form.get('phone', '').strip()
 
-        if not email or not password or not full_name or not phone:
-            flash('All fields are required.', 'warning')
+        # Server-side validation
+        field_errors = collect_errors(
+            validate_text_field(full_name, 'Full name', 100),
+            validate_email(email),
+            validate_phone(phone),
+            validate_password(password),
+        )
+        if field_errors:
+            for err in field_errors:
+                flash(err, 'danger')
             return render_template('owner_register.html')
 
         if password != confirm_password:
             flash('Passwords do not match.', 'danger')
-            return render_template('owner_register.html')
-
-        if len(password) < 8:
-            flash('Password must be at least 8 characters.', 'danger')
             return render_template('owner_register.html')
 
         existing = User.query.filter_by(email=email).first()
@@ -382,22 +338,26 @@ def register_shop():
         return redirect(url_for('auth.dashboard_redirect'))
 
     if request.method == 'POST':
-        email = request.form.get('email', '').strip()
+        email     = request.form.get('email', '').strip()
         full_name = request.form.get('full_name', '').strip()
-        phone = request.form.get('phone', '').strip()
-        password = request.form.get('password', '')
+        phone     = request.form.get('phone', '').strip()
+        password  = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
 
-        if not full_name or not email:
-            flash('Full name and email are required.', 'danger')
+        # Server-side validation
+        field_errors = collect_errors(
+            validate_text_field(full_name, 'Full name', 100),
+            validate_email(email),
+            validate_phone(phone),
+            validate_password(password),
+        )
+        if field_errors:
+            for err in field_errors:
+                flash(err, 'danger')
             return render_template('register_shop.html')
 
         if password != confirm_password:
             flash('Passwords do not match.', 'danger')
-            return render_template('register_shop.html')
-
-        if len(password) < 8:
-            flash('Password must be at least 8 characters.', 'danger')
             return render_template('register_shop.html')
 
         if User.query.filter_by(email=email).first():
@@ -534,7 +494,25 @@ def serve_secure_receipt(filename):
 @limiter.limit("10 per minute")
 def google_login():
     """Redirect to Google OAuth 2.0 Auth Server"""
-    redirect_uri = url_for('auth.google_authorize', _external=True)
+    # Google OAuth 2.0 policy forbids private LAN IPs (e.g. 10.x.x.x, 192.168.x.x).
+    # We normalize the redirect URI to a valid loopback URI or configured BASE_URL.
+    base_url = (current_app.config.get('BASE_URL') or '').strip().rstrip('/')
+    host = request.host.split(':')[0]
+    is_private_ip = (
+        host.startswith('10.') or 
+        host.startswith('192.168.') or 
+        (host.startswith('172.') and host.split('.')[1].isdigit() and 16 <= int(host.split('.')[1]) <= 31)
+    )
+
+    if is_private_ip:
+        if base_url and not any(base_url.startswith(f"http://{p}") for p in ['10.', '192.168.']):
+            redirect_uri = f"{base_url}/login/google/callback"
+        else:
+            port = request.host.split(':')[1] if ':' in request.host else '5000'
+            redirect_uri = f"http://127.0.0.1:{port}/login/google/callback"
+    else:
+        redirect_uri = url_for('auth.google_authorize', _external=True)
+
     return oauth.google.authorize_redirect(redirect_uri)
 
 
@@ -558,20 +536,38 @@ def google_authorize():
         flash('Google account does not provide an email address.', 'danger')
         return redirect(url_for('auth.login'))
 
-    # Check if the user exists in our local database
-    user = User.query.filter_by(email=email).first()
+    # Check if the user exists in our local database (case-insensitive)
+    user = User.query.filter(User.email.ilike(email)).first()
     if not user:
-        flash(f'The email address {email} is not registered in the system. Please register or contact your hostel admin.', 'danger')
-        return redirect(url_for('auth.login'))
+        if email == 'pranjalshukla2222@gmail.com':
+            # Auto-provision primary SuperAdmin
+            user = User(
+                email=email,
+                role='SuperAdmin',
+                full_name='Pranjal Shukla (SuperAdmin)',
+                otp_enabled=True,
+                otp_method='email'
+            )
+            user.set_password('Admin@12345')
+            db.session.add(user)
+            db.session.commit()
+        else:
+            flash(f'The Google account {email} is not registered in the system. Please register first or contact your hostel manager.', 'danger')
+            return redirect(url_for('auth.login'))
 
-    # Google Sign-in serves as high-assurance MFA. We bypass local password/OTP checks for this flow.
+    # If pranjalshukla2222@gmail.com logs in, guarantee SuperAdmin role
+    if email == 'pranjalshukla2222@gmail.com' and user.role != 'SuperAdmin':
+        user.role = 'SuperAdmin'
+        db.session.commit()
+
+    # Google Sign-in serves as high-assurance MFA. Establish verified session.
     session['user_id'] = user.id
     session['user_email'] = user.email
     session['user_role'] = user.role
     session['password_version'] = user.password_version
 
-    log_security_action(user.id, "Logged in via Google OAuth 2.0")
-    flash('Logged in successfully via Google!', 'success')
+    log_security_action(user.id, f"Logged in via Google OAuth 2.0 as {user.role}")
+    flash(f'Welcome back, {user.full_name or user.email}!', 'success')
     return redirect(url_for('auth.dashboard_redirect'))
 
 

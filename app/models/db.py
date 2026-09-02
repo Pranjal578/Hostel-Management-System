@@ -25,11 +25,11 @@ class User(db.Model):
     full_name = db.Column(db.String(100), nullable=True)
     phone = db.Column(db.String(20), nullable=True)
     
-    # OTP Configuration
-    otp_enabled = db.Column(db.Boolean, default=False)
+    # OTP Configuration (2FA Mandatory for all users)
+    otp_enabled = db.Column(db.Boolean, default=True)
     otp_code = db.Column(db.String(200), nullable=True)  # Hashed OTP code
     otp_expires_at = db.Column(db.DateTime, nullable=True)
-    otp_method = db.Column(db.String(10), nullable=True)  # 'email' or 'sms'
+    otp_method = db.Column(db.String(10), default='email')  # 'email' or 'sms'
     
     # Session / Password version for session invalidation on password change
     password_version = db.Column(db.Integer, default=1, nullable=False)
@@ -56,18 +56,18 @@ class User(db.Model):
         return check_password_hash(self.password_hash, password)
         
     def is_otp_enabled(self):
-        """Check if OTP is enabled for this user"""
-        return self.otp_enabled
+        """2FA is mandatory across all users."""
+        return True
         
     def setup_otp(self, method):
-        """Enable OTP for user"""
+        """Update OTP delivery method for user"""
         self.otp_enabled = True
-        self.otp_method = method
+        self.otp_method = method or 'email'
         
     def disable_otp(self):
-        """Disable OTP for user"""
-        self.otp_enabled = False
-        self.otp_method = None
+        """2FA is mandatory - defaults to email method."""
+        self.otp_enabled = True
+        self.otp_method = 'email'
         self.otp_code = None
         self.otp_expires_at = None
         

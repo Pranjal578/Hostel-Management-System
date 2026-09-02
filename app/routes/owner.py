@@ -13,24 +13,39 @@ owner_bp = Blueprint('owner', __name__)
 @owner_bp.route('/dashboard')
 @role_required('HostelOwner')
 def dashboard():
-    """Hostel Owner Dashboard - central summary portal"""
+    """Hostel Owner Dashboard - real dynamic summary portal"""
     owner_id = session['user_id']
     hostels = Hostel.query.filter_by(owner_id=owner_id).all()
     hostel_ids = [h.id for h in hostels]
     
     residents = Resident.query.filter(Resident.hostel_id.in_(hostel_ids)).all() if hostel_ids else []
+    active_residents = [r for r in residents if r.status == 'Active']
+    pending_residents = [r for r in residents if r.status == 'Pending']
+    
+    total_capacity = sum(h.total_capacity for h in hostels)
+    occupied_rooms = len(set(r.room_number for r in active_residents if r.room_number)) or len(active_residents)
+    capacity_left = max(0, total_capacity - len(active_residents))
+    
     pending_payments = Payment.query.filter(Payment.hostel_id.in_(hostel_ids), Payment.status == 'Pending').all() if hostel_ids else []
     verified_payments = Payment.query.filter(Payment.hostel_id.in_(hostel_ids), Payment.status == 'Verified').all() if hostel_ids else []
+    
+    total_rent_collected = float(sum(p.amount for p in verified_payments))
+    total_pending_rent = float(sum(p.amount for p in pending_payments))
 
     return render_template(
         'admin_dashboard.html',
         is_owner=True,
         hostels=hostels,
         residents=residents,
+        active_residents=active_residents,
+        pending_residents=pending_residents,
         pending_payments=pending_payments,
         verified_payments=verified_payments,
-        occupied_rooms=len(residents),
-        capacity_left=sum(max(0, h.total_capacity - len(h.residents)) for h in hostels)
+        occupied_rooms=occupied_rooms,
+        total_capacity=total_capacity,
+        capacity_left=capacity_left,
+        total_rent_collected=total_rent_collected,
+        total_pending_rent=total_pending_rent
     )
 
 

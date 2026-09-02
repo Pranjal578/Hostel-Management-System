@@ -8,6 +8,8 @@ Usage:
     python manage.py collect-static   # Create static directories
     python manage.py check            # Run deployment verification checks
     python manage.py generate-secret  # Generate secure SECRET_KEY
+    python manage.py backup           # Create a timestamped database backup
+    python manage.py backup --keep N  # Backup and keep only last N backups (default 7)
 """
 
 import os
@@ -125,6 +127,94 @@ def generate_secret():
     print(f"SECRET_KEY={key}")
 
 
+def backup(keep: int = 7):
+    """
+    Create a timestamped database backup.
+
+    For SQLite: copies the .db file to backups/<timestamp>.db
+    For PostgreSQL: runs pg_dump and saves to backups/<timestamp>.sql
+
+    Args:
+        keep: Number of most-recent backups to retain (older ones are deleted).
+    """
+    import shutil
+    import subprocess
+    import glob
+    from datetime import datetime
+    from urllib.parse import urlparse
+
+    backup_dir = Path('backups')
+    backup_dir.mkdir(exist_ok=True)
+    timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+
+    db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+
+    if db_uri.startswith('sqlite'):
+        # Resolve the .db file path from the URI
+        db_path_str = db_uri.replace('sqlite:///', '').replace('sqlite://', '')
+        if not db_path_str:
+            db_path_str = str(Path(app.instance_path) / 'database.db')
+
+        db_path = Path(db_path_str)
+        if not db_path.exists():
+            # Also try instance path
+            db_path = Path(app.instance_path) / 'database.db'
+
+        if not db_path.exists():
+            print(f"[ERROR] SQLite database file not found at: {db_path}")
+            sys.exit(1)
+
+        dest = backup_dir / f"{timestamp}.db"
+        shutil.copy2(str(db_path), str(dest))
+        print(f"[OK] SQLite backup created: {dest} ({dest.stat().st_size / 1024:.1f} KB)")
+
+    elif db_uri.startswith('postgresql') or db_uri.startswith('postgres'):
+        parsed = urlparse(db_uri)
+        dest = backup_dir / f"{timestamp}.sql"
+
+        env = os.environ.copy()
+        if parsed.password:
+            env['PGPASSWORD'] = parsed.password
+
+        cmd = [
+            'pg_dump',
+            '-h', parsed.hostname or 'localhost',
+            '-p', str(parsed.port or 5432),
+            '-U', parsed.username or 'postgres',
+            '-d', parsed.path.lstrip('/'),
+            '-F', 'p',      # plain SQL format
+            '--no-owner',
+            '--no-acl',
+        ]
+        print(f"[INFO] Running: {' '.join(cmd)}")
+        with open(str(dest), 'w') as f:
+            result = subprocess.run(cmd, stdout=f, stderr=subprocess.PIPE, env=env)
+
+        if result.returncode != 0:
+            print(f"[ERROR] pg_dump failed: {result.stderr.decode()}")
+            sys.exit(1)
+
+        size_kb = dest.stat().st_size / 1024
+        print(f"[OK] PostgreSQL backup created: {dest} ({size_kb:.1f} KB)")
+
+    else:
+        print(f"[ERROR] Unsupported database URI scheme: {db_uri[:30]}...")
+        sys.exit(1)
+
+    # ── Rotation: delete oldest backups beyond `keep` ──────────
+    all_backups = sorted(
+        list(backup_dir.glob('*.db')) + list(backup_dir.glob('*.sql')),
+        key=lambda p: p.stat().st_mtime
+    )
+    if len(all_backups) > keep:
+        to_delete = all_backups[:len(all_backups) - keep]
+        for old in to_delete:
+            old.unlink()
+            print(f"[ROTATE] Deleted old backup: {old.name}")
+
+    print(f"[OK] Backup rotation complete. Keeping last {keep} backups.")
+
+
 def run_checks():
     """Run all deployment verification checks"""
     print("Running system deployment checks...\n")
@@ -203,6 +293,8 @@ def main():
         print("  python manage.py collect-static   - Create static directories")
         print("  python manage.py generate-secret  - Generate SECRET_KEY")
         print("  python manage.py check            - Run all checks")
+        print("  python manage.py backup           - Backup database (SQLite or PostgreSQL)")
+        print("  python manage.py backup --keep N  - Backup & keep only last N backups")
         return
 
     command = sys.argv[1]
@@ -214,6 +306,10 @@ def main():
         'collect-static': collect_static,
         'generate-secret': generate_secret,
         'check': run_checks,
+        'backup': lambda: backup(
+            keep=int(sys.argv[sys.argv.index('--keep') + 1])
+            if '--keep' in sys.argv else 7
+        ),
     }
 
     if command in commands:

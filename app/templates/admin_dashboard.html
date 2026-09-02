@@ -35,19 +35,22 @@
     </div>
 </div>
 
-<div class="bento-grid">
-    <!-- Stats Cards -->
-    <div class="bento-card glass-minimal col-4 text-center">
-        <h2 style="font-size: 3rem; color: var(--primary); margin-bottom: 0.25rem; text-shadow: 0 0 10px var(--primary-glow);">{{ hostels|length }}</h2>
-        <p style="font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.85rem;">Active Hostels</p>
+    <!-- Stats Cards (Real Platform Metrics) -->
+    <div class="bento-card glass-minimal col-3 text-center">
+        <h2 style="font-size: 2.5rem; color: var(--primary); margin-bottom: 0.25rem; text-shadow: 0 0 10px var(--primary-glow);">{{ hostels|length }}</h2>
+        <p style="font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Active Hostels</p>
     </div>
-    <div class="bento-card glass-minimal col-4 text-center">
-        <h2 style="font-size: 3rem; color: var(--accent); margin-bottom: 0.25rem; text-shadow: 0 0 10px var(--accent-glow);">{{ owners|length }}</h2>
-        <p style="font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.85rem;">Registered Owners</p>
+    <div class="bento-card glass-minimal col-3 text-center">
+        <h2 style="font-size: 2.5rem; color: var(--accent); margin-bottom: 0.25rem; text-shadow: 0 0 10px var(--accent-glow);">{{ active_residents_count if active_residents_count is defined else residents_count }} <span style="font-size: 1.1rem; color: var(--text-muted); font-weight: 500;">/ {{ residents_count }}</span></h2>
+        <p style="font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Active Residents</p>
     </div>
-    <div class="bento-card glass-minimal col-4 text-center">
-        <h2 style="font-size: 3rem; color: var(--success); margin-bottom: 0.25rem; text-shadow: 0 0 10px var(--success-glow);">{{ total_capacity }}</h2>
-        <p style="font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.85rem;">Platform Capacity</p>
+    <div class="bento-card glass-minimal col-3 text-center">
+        <h2 style="font-size: 2.5rem; color: var(--success); margin-bottom: 0.25rem; text-shadow: 0 0 10px var(--success-glow);">₹{{ "{:,.0f}".format(total_rent_collected) if total_rent_collected is defined else '0' }}</h2>
+        <p style="font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Rent Reconciled</p>
+    </div>
+    <div class="bento-card glass-minimal col-3 text-center">
+        <h2 style="font-size: 2.5rem; color: #fbbf24; margin-bottom: 0.25rem; text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);">{{ total_capacity }} <span style="font-size: 1.1rem; color: var(--text-muted); font-weight: 500;">({{ occupied_rooms }} occ)</span></h2>
+        <p style="font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem;">Total Capacity (Beds)</p>
     </div>
 
     <!-- Quick Navigation Panels & Global Summary side-by-side -->
@@ -191,22 +194,22 @@
 </div>
 
 <div class="bento-grid">
-    <!-- Hostel Statistics Bento Grid -->
+    <!-- Hostel Statistics Bento Grid (Real Dynamic Data) -->
     <div class="bento-card glass-minimal col-3 text-center">
-        <h2 style="font-size: 2.5rem; color: var(--primary); margin-bottom: 0.25rem;">{{ occupied_rooms }}</h2>
-        <p style="font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Occupied Beds</p>
+        <h2 style="font-size: 2.5rem; color: var(--primary); margin-bottom: 0.25rem;">{{ active_residents|length if active_residents is defined else occupied_rooms }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 500;">/ {{ residents|length }}</span></h2>
+        <p style="font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Active Residents</p>
     </div>
     <div class="bento-card glass-minimal col-3 text-center">
-        <h2 style="font-size: 2.5rem; color: var(--accent); margin-bottom: 0.25rem;">{{ capacity_left }}</h2>
-        <p style="font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Beds Left</p>
+        <h2 style="font-size: 2.5rem; color: var(--accent); margin-bottom: 0.25rem;">{{ capacity_left }} <span style="font-size: 1rem; color: var(--text-muted); font-weight: 500;">/ {{ total_capacity }}</span></h2>
+        <p style="font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Beds Left ({{ occupied_rooms }} Occ)</p>
     </div>
     <div class="bento-card glass-minimal col-3 text-center">
-        <h2 style="font-size: 2.5rem; color: var(--warning); margin-bottom: 0.25rem;">{{ pending_payments|length }}</h2>
-        <p style="font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Pending Reviews</p>
+        <h2 style="font-size: 2.5rem; color: var(--success); margin-bottom: 0.25rem;">₹{{ "{:,.0f}".format(total_rent_collected) if total_rent_collected is defined else '0' }}</h2>
+        <p style="font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Rent Reconciled ({{ verified_payments|length }} Verified)</p>
     </div>
     <div class="bento-card glass-minimal col-3 text-center">
-        <h2 style="font-size: 2.5rem; color: var(--success); margin-bottom: 0.25rem;">{{ verified_payments|length }}</h2>
-        <p style="font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Verified Receipts</p>
+        <h2 style="font-size: 2.5rem; color: var(--warning); margin-bottom: 0.25rem;">₹{{ "{:,.0f}".format(total_pending_rent) if total_pending_rent is defined else '0' }}</h2>
+        <p style="font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase;">Pending Rent ({{ pending_payments|length }} Reviews)</p>
     </div>
 
     <!-- Quick Navigation Actions -->

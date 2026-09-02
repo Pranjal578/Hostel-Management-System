@@ -4,61 +4,39 @@
 
 {% block content %}
 <div style="display: flex; justify-content: center; align-items: center; min-height: 70vh;">
-    <div class="bento-card clay-card col-12" style="max-width: 480px; width: 100%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);">
-        <div style="text-align: center; margin-bottom: 2rem;">
-            <div style="font-size: 3.5rem; margin-bottom: 0.5rem; filter: drop-shadow(0 0 10px var(--primary-glow));">🔒</div>
-            <h2 style="font-size: 1.8rem; margin-bottom: 0.25rem;">Unified Gateway</h2>
-            <p style="color: var(--text-secondary); font-size: 0.95rem; margin: 0;">Sign in to access your portal role</p>
+    <div class="bento-card clay-card col-12" style="max-width: 480px; width: 100%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); text-align: center; padding: 3rem 2rem;">
+        <div style="margin-bottom: 2rem;">
+            <div style="font-size: 3.5rem; margin-bottom: 0.75rem; filter: drop-shadow(0 0 12px var(--primary-glow));">🔐</div>
+            <h2 style="font-size: 2rem; margin-bottom: 0.5rem; background: linear-gradient(135deg, var(--text-primary) 0%, var(--primary) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Secure Unified Gateway</h2>
+            <p style="color: var(--text-secondary); font-size: 0.95rem; margin: 0; line-height: 1.6;">
+                Sign in with your verified Google account to access your designated role portal (SuperAdmin, Owner, Resident, or Shop).
+            </p>
         </div>
         
-        <form method="POST" action="{{ url_for('auth.login') }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="form-group">
-                <label class="form-label" for="email">Username or Email</label>
-                <input type="text" class="form-control tactile-inset" id="email" name="email" required placeholder="name@hostel.com or demo" autofocus>
-            </div>
-            
-            <div class="form-group" style="margin-bottom: 2rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                    <label class="form-label" for="password" style="margin: 0;">Password</label>
-                </div>
-                <input type="password" class="form-control tactile-inset" id="password" name="password" required placeholder="Enter account password">
-            </div>
-            
-            <button type="submit" class="btn btn-primary clay-btn" style="width: 100%; padding: 0.9rem; font-size: 1rem; border-radius: var(--radius-md);">
-                🔐 Authenticate & Enter
-            </button>
-        </form>
-        
-        <div style="text-align: center; margin: 1.5rem 0; display: flex; align-items: center; justify-content: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.9rem;">
-            <hr style="flex-grow: 1; border: 0; border-top: 1px solid var(--glass-border);">
-            <span>or</span>
-            <hr style="flex-grow: 1; border: 0; border-top: 1px solid var(--glass-border);">
-        </div>
-        
-        <a href="{{ url_for('auth.google_login') }}" class="btn btn-secondary tactile-outset" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.75rem; padding: 0.8rem; font-size: 1rem; border-radius: var(--radius-md); text-decoration: none; border: 1px solid var(--glass-border); background: rgba(255, 255, 255, 0.03);">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="background: white; padding: 2px; border-radius: 4px;">
+        <!-- Google Sign-In Primary Action Button -->
+        <a href="{{ url_for('auth.google_login') }}" class="btn clay-btn" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.85rem; padding: 1rem 1.5rem; font-size: 1.05rem; font-weight: 700; border-radius: var(--radius-md); text-decoration: none; box-shadow: 0 10px 25px -5px rgba(56, 189, 248, 0.4); margin-bottom: 1.5rem;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="background: white; padding: 3px; border-radius: 50%;">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                 <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
                 <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
             </svg>
-            <span style="color: var(--text-primary); font-weight: 500;">Sign in with Google</span>
+            <span>Continue with Google</span>
         </a>
-        
-        <!-- Premium Notice Box
-        <div style="background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.2); padding: 1.25rem; border-radius: var(--radius-md); margin-top: 2rem;">
-            <p style="margin: 0; color: var(--warning); font-size: 0.85rem; line-height: 1.5;">
-                <strong>⚠️ Default Credentials:</strong><br>
-                SuperAdmin Username: <code>demo</code> | Password: <code>demo</code>
+
+        <!-- Security & MFA Badge -->
+        <div style="background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.15); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem;">
+            <p style="margin: 0; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5;">
+                🛡️ <strong>High-Assurance Security:</strong> Authenticated directly via Google OAuth 2.0 with integrated Multi-Factor Verification.
             </p>
-        </div> -->
+        </div>
         
-        <div style="text-align: center; margin-top: 1.5rem;">
+        <div style="text-align: center;">
             <p style="color: var(--text-muted); font-size: 0.9rem; margin: 0;">
-                New resident? <a href="{{ url_for('auth.register') }}" style="color: var(--primary); font-weight: 600;">Register here</a>
+                New tenant? <a href="{{ url_for('auth.register') }}" style="color: var(--primary); font-weight: 600;">Register profile</a>
             </p>
         </div>
     </div>
 </div>
+
 {% endblock %}

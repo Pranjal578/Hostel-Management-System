@@ -103,20 +103,6 @@ def mobile_login():
     if not email or not password:
         return jsonify({'error': 'Email and password are required.'}), 400
 
-    # SuperAdmin shortcut (uses env credentials)
-    admin_email = current_app.config.get('ADMIN_USERNAME', 'admin')
-    admin_pass = current_app.config.get('ADMIN_PASSWORD', 'admin')
-    if email == admin_email and password == admin_pass:
-        user = User.query.filter_by(email=email).first()
-        if not user:
-            user = User(email=email, role='SuperAdmin')
-            user.set_password(password)
-            db.session.add(user)
-            db.session.commit()
-        token = _create_token(user)
-        _log(user.id, 'Mobile login as SuperAdmin')
-        return jsonify({'access_token': token, 'role': user.role})
-
     user = User.query.filter_by(email=email).first()
     if not user or not user.check_password(password):
         return jsonify({'error': 'Invalid email or password.'}), 401
@@ -140,40 +126,62 @@ def mobile_login():
 
 @mobile_api_bp.route('/auth/google', methods=['POST'])
 def mobile_google_login():
-    """Verify Google OAuth id_token and return JWT access_token."""
+    """Verify Google OAuth id_token or access_token and return JWT access_token."""
     data = request.get_json(silent=True) or {}
     id_token = data.get('id_token')
+    access_token = data.get('access_token')
 
-    if not id_token:
-        return jsonify({'error': 'Google ID token is required.'}), 400
+    if not id_token and not access_token:
+        return jsonify({'error': 'Google authentication token is required.'}), 400
 
     import requests
     try:
-        # Validate ID token with Google API endpoint
-        res = requests.get(
-            f'https://oauth2.googleapis.com/tokeninfo?id_token={id_token}',
-            timeout=10
-        )
-        if res.status_code != 200:
-            return jsonify({'error': 'Invalid Google token signature or expired.'}), 400
+        email = None
+        # 1. Try id_token if provided
+        if id_token:
+            res = requests.get(
+                f'https://oauth2.googleapis.com/tokeninfo?id_token={id_token}',
+                timeout=10
+            )
+            if res.status_code == 200:
+                token_info = res.json()
+                email = token_info.get('email')
 
-        token_info = res.json()
-        email = token_info.get('email')
+        # 2. Try access_token if email was not retrieved from id_token
+        if not email and access_token:
+            res = requests.get(
+                f'https://oauth2.googleapis.com/tokeninfo?access_token={access_token}',
+                timeout=10
+            )
+            if res.status_code == 200:
+                token_info = res.json()
+                email = token_info.get('email')
+            
+            # Fallback to Google userinfo endpoint
+            if not email:
+                userinfo_res = requests.get(
+                    'https://www.googleapis.com/oauth2/v3/userinfo',
+                    headers={'Authorization': f'Bearer {access_token}'},
+                    timeout=10
+                )
+                if userinfo_res.status_code == 200:
+                    user_info = userinfo_res.json()
+                    email = user_info.get('email')
 
         if not email:
-            return jsonify({'error': 'Google account does not provide email.'}), 400
+            return jsonify({'error': 'Invalid Google token or expired session.'}), 400
 
-        # Check if the user exists in our database
-        user = User.query.filter_by(email=email).first()
+        # Check if the user exists in database (case-insensitive)
+        user = User.query.filter(User.email.ilike(email)).first()
         if not user:
             return jsonify({
-                'error': f'The email {email} is not registered in ROOMMET. Please register via Web Portal first.'
+                'error': f'The email {email} is not registered in ROOMMET. Please register first or contact your admin.'
             }), 403
 
         # Success! Mint and return JWT token
         token = _create_token(user)
         _log(user.id, 'Mobile login via Google OAuth')
-        return jsonify({'access_token': token, 'role': user.role}), 200
+        return jsonify({'access_token': token, 'role': user.role, 'email': user.email}), 200
 
     except requests.RequestException as e:
         return jsonify({'error': f'Failed to contact Google verification server: {str(e)}'}), 500
@@ -537,17 +545,37 @@ def owner_dashboard(current_user):
         return jsonify({'error': 'Forbidden'}), 403
 
     hostels = current_user.hostels
+    hostel_ids = [h.id for h in hostels]
     total_residents = sum(len(h.residents) for h in hostels)
+    active_residents = sum(1 for h in hostels for r in h.residents if r.status == 'Active')
+    total_capacity = sum(h.total_capacity for h in hostels)
+    occupied_rooms = sum(1 for h in hostels for r in h.residents if r.status == 'Active' and r.room_number) or active_residents
+    capacity_left = max(0, total_capacity - active_residents)
+    
     total_pending_payments = sum(h.pending_payments_count for h in hostels)
     pending_approvals = sum(
         1 for h in hostels for r in h.residents if r.status == 'Pending'
     )
+    
+    total_rent_collected = float(db.session.query(db.func.sum(Payment.amount)).filter(
+        Payment.hostel_id.in_(hostel_ids), Payment.status == 'Verified'
+    ).scalar() or 0.0) if hostel_ids else 0.0
+    
+    total_pending_rent = float(db.session.query(db.func.sum(Payment.amount)).filter(
+        Payment.hostel_id.in_(hostel_ids), Payment.status == 'Pending'
+    ).scalar() or 0.0) if hostel_ids else 0.0
 
     return jsonify({
         'hostel_count': len(hostels),
         'total_residents': total_residents,
+        'active_residents': active_residents,
+        'total_capacity': total_capacity,
+        'occupied_rooms': occupied_rooms,
+        'capacity_left': capacity_left,
         'pending_payments': total_pending_payments,
         'pending_approvals': pending_approvals,
+        'total_rent_collected': total_rent_collected,
+        'total_pending_rent': total_pending_rent,
         'hostels': [{
             'id': h.id,
             'name': h.hostel_name,
@@ -1114,8 +1142,15 @@ def admin_stats(current_user):
     total_residents = Resident.query.count()
     active_residents = Resident.query.filter_by(status='Active').count()
     pending_residents = Resident.query.filter_by(status='Pending').count()
+    total_capacity = sum(h.total_capacity for h in Hostel.query.all())
+    occupied_rooms = len(set(r.room_number for r in Resident.query.filter(Resident.room_number.isnot(None), Resident.room_number != '').all())) or active_residents
+    
     total_payments = Payment.query.count()
     pending_payments = Payment.query.filter_by(status='Pending').count()
+    verified_payments = Payment.query.filter_by(status='Verified').count()
+    total_rent_collected = float(db.session.query(db.func.sum(Payment.amount)).filter(Payment.status == 'Verified').scalar() or 0.0)
+    pending_rent_amount = float(db.session.query(db.func.sum(Payment.amount)).filter(Payment.status == 'Pending').scalar() or 0.0)
+    
     total_shops = Shop.query.count()
     pending_shops = Shop.query.filter_by(verification_status='Pending').count()
     total_orders = MedicineOrder.query.count()
@@ -1123,8 +1158,23 @@ def admin_stats(current_user):
     return jsonify({
         'hostels': total_hostels,
         'owners': total_owners,
-        'residents': {'total': total_residents, 'active': active_residents, 'pending': pending_residents},
-        'payments': {'total': total_payments, 'pending': pending_payments},
+        'residents': {
+            'total': total_residents,
+            'active': active_residents,
+            'pending': pending_residents
+        },
+        'capacity': {
+            'total': total_capacity,
+            'occupied': occupied_rooms,
+            'available': max(0, total_capacity - active_residents)
+        },
+        'payments': {
+            'total': total_payments,
+            'verified': verified_payments,
+            'pending': pending_payments,
+            'total_rent_collected': total_rent_collected,
+            'pending_rent_amount': pending_rent_amount
+        },
         'shops': {'total': total_shops, 'pending': pending_shops},
         'orders': total_orders,
     }), 200

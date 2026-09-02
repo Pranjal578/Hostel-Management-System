@@ -139,11 +139,10 @@ def update_security():
 @settings_bp.route('/otp', methods=['POST'])
 @role_required('Resident', 'HostelOwner', 'SuperAdmin')
 def update_otp():
-    """Toggle Multi-Factor OTP settings"""
+    """Update Multi-Factor OTP delivery method (2FA is mandatory for all accounts)"""
     user_id = session['user_id']
     user = User.query.get_or_404(user_id)
     
-    enable_otp = request.form.get('enable_otp') == 'True'
     otp_method = request.form.get('otp_method', 'email').strip()
     confirm_password = request.form.get('confirm_password')
     
@@ -151,14 +150,10 @@ def update_otp():
         flash('Re-authentication failed. Incorrect password.', 'danger')
         return redirect(url_for('settings.index'))
         
-    if enable_otp:
-        user.setup_otp(otp_method)
-        action_msg = f"Enabled OTP 2FA via {otp_method}"
-    else:
-        user.disable_otp()
-        action_msg = "Disabled OTP 2FA security"
+    user.setup_otp(otp_method)
+    action_msg = f"Updated 2FA delivery method to {otp_method}"
         
     db.session.commit()
     log_security_action(user_id, action_msg)
-    flash(f'MFA Settings updated: {action_msg}.', 'success')
+    flash(f'MFA Settings updated: {action_msg}. (2FA is mandatory for all system accounts)', 'success')
     return redirect(url_for('settings.index'))

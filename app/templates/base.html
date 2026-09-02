@@ -3,42 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Hostel Resident SaaS Platform - Secure resident profiles & payment management">
+
+    <!-- ── SEO Meta ── -->
+    <meta name="description" content="{% block meta_description %}ROOMMET — A modern, digital-first hostel resident management platform with secure payments, QR identity cards, and real-time notices.{% endblock %}">
+    <meta name="author" content="ROOMMET">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{{ request.url }}">
+
+    <!-- ── OpenGraph / Social Preview ── -->
+    <meta property="og:type"        content="website">
+    <meta property="og:site_name"   content="ROOMMET">
+    <meta property="og:title"       content="{% block og_title %}ROOMMET – Hostel Management Platform{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Secure resident profiles, UPI payments, QR identity cards, and hostel community tools — all in one place.{% endblock %}">
+    <meta property="og:image"       content="{{ request.url_root }}static/images/logo.jpg">
+    <meta property="og:url"         content="{{ request.url }}">
+    <!-- Twitter Card -->
+    <meta name="twitter:card"        content="summary_large_image">
+    <meta name="twitter:title"       content="{% block twitter_title %}ROOMMET – Hostel Management{% endblock %}">
+    <meta name="twitter:description" content="Hostel SaaS platform for residents and owners.">
+    <meta name="twitter:image"       content="{{ request.url_root }}static/images/logo.jpg">
+
     <title>{% block title %}ROOMMET{% endblock %}</title>
-    
-    <!-- Stylesheets -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    
-    <!-- Favicon -->
+
+    <!-- ── Favicon ── -->
     <link rel="icon" type="image/jpeg" href="{{ url_for('static', filename='images/logo.jpg') }}">
-    
+
+    <!-- ── Stylesheet ── -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- ── Inline theme init (no FOUC) ── -->
     <script>
         (function() {
             const theme = localStorage.getItem('theme') || 'dark';
-            if (theme === 'light') {
-                document.documentElement.classList.add('light-theme');
-            }
+            if (theme === 'light') document.documentElement.classList.add('light-theme');
         })();
     </script>
+
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Glass Navigation Bar -->
-    <nav class="navbar">
+
+    <!-- ── Skip to Content (Accessibility) ── -->
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <!-- ════════════════════════════════════════════════
+         STICKY GLASS NAVBAR
+         ════════════════════════════════════════════════ -->
+    <nav class="navbar" id="mainNav" role="navigation" aria-label="Main navigation">
         <div class="container">
-            <a href="{{ url_for('index') }}" class="navbar-brand" style="display: flex; align-items: center; gap: 0.6rem;">
-                <img src="/static/images/logo.jpg" alt="Logo" style="height: 32px; width: 32px; border-radius: 8px; object-fit: cover;" onerror="this.onerror=null; this.src='/static/images/default_profile.png';">
+            <a href="{{ url_for('index') }}" class="navbar-brand" aria-label="ROOMMET Home">
+                <img src="/static/images/logo.jpg" alt="ROOMMET Logo"
+                     style="height:32px;width:32px;border-radius:8px;object-fit:cover;"
+                     onerror="this.onerror=null;this.src='/static/images/default_profile.png';">
                 ROOMMET
             </a>
-            
-            <button class="menu-toggle" id="menuToggle">☰</button>
-            
-            <ul class="navbar-menu" id="navbarMenu">
+
+            <ul class="navbar-menu" id="navbarMenu" role="list">
                 <li><a href="{{ url_for('index') }}">Home</a></li>
-                
+
                 {% if session.get('user_id') %}
                     {% if session.get('user_role') == 'SuperAdmin' %}
-                        <!-- Super Admin -->
                         <li><a href="{{ url_for('admin.dashboard') }}">Dashboard</a></li>
                         <li><a href="{{ url_for('admin.hostels_list') }}">Hostels</a></li>
                         <li><a href="{{ url_for('admin.owners_list') }}">Owners</a></li>
@@ -48,7 +72,6 @@
                         <li><a href="{{ url_for('settings.index') }}">Settings</a></li>
                         <li><a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm">Logout</a></li>
                     {% elif session.get('user_role') == 'HostelOwner' %}
-                        <!-- Hostel Owner -->
                         <li><a href="{{ url_for('owner.dashboard') }}">Dashboard</a></li>
                         <li><a href="{{ url_for('owner.hostels_list') }}">Hostels</a></li>
                         <li><a href="{{ url_for('owner.requests_list') }}">Requests</a></li>
@@ -57,22 +80,18 @@
                         <li><a href="{{ url_for('owner.payments_list') }}">Payments</a></li>
                         <li><a href="{{ url_for('owner.chat_dashboard') }}">Chat</a></li>
                         <li><a href="{{ url_for('pharmacy.marketplace') }}">Marketplace</a></li>
-                        <li><a href="{{ url_for('pharmacy.my_orders') }}">My Orders</a></li>
                         <li><a href="{{ url_for('settings.index') }}">Settings</a></li>
                         <li><a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm">Logout</a></li>
                     {% elif session.get('user_role') == 'Resident' %}
-                        <!-- Resident -->
                         <li><a href="{{ url_for('resident.dashboard') }}">Profile</a></li>
                         <li><a href="{{ url_for('auth.hostel_discovery') }}">Hostels</a></li>
                         <li><a href="{{ url_for('resident.notices_page') }}">Notices</a></li>
                         <li><a href="{{ url_for('resident.payments_page') }}">Payments</a></li>
                         <li><a href="{{ url_for('resident.chat_page') }}">Chat</a></li>
                         <li><a href="{{ url_for('pharmacy.marketplace') }}">Pharmacy</a></li>
-                        <li><a href="{{ url_for('pharmacy.my_orders') }}">My Orders</a></li>
                         <li><a href="{{ url_for('settings.index') }}">Settings</a></li>
                         <li><a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm">Logout</a></li>
                     {% elif session.get('user_role') == 'ShopOwner' %}
-                        <!-- Shop Owner -->
                         <li><a href="{{ url_for('pharmacy.shop_dashboard') }}">Dashboard</a></li>
                         <li><a href="{{ url_for('pharmacy.inventory') }}">Inventory</a></li>
                         <li><a href="{{ url_for('pharmacy.orders') }}">Orders</a></li>
@@ -83,67 +102,163 @@
                         <li><a href="{{ url_for('auth.logout') }}" class="btn btn-danger btn-sm">Logout</a></li>
                     {% endif %}
                 {% else %}
-                    <!-- Not logged in -->
                     <li><a href="{{ url_for('auth.hostel_discovery') }}">Hostels</a></li>
-                    <li><a href="{{ url_for('pharmacy.marketplace') }}">
-                        
-                        
-                        Pharmacy</a></li>
-                    <li><a href="{{ url_for('settings.index') }}">Settings</a></li>
+                    <li><a href="{{ url_for('pharmacy.marketplace') }}">Pharmacy</a></li>
                     <li><a href="{{ url_for('auth.register') }}">Register Resident</a></li>
                     <li><a href="{{ url_for('auth.register_owner') }}">Register Owner</a></li>
-                    <li><a href="{{ url_for('auth.register_shop') }}">Register Shop</a></li>
                     <li><a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-sm">Login</a></li>
                 {% endif %}
             </ul>
+
+            <!-- Right-side controls -->
+            <div style="display:flex;align-items:center;gap:0.6rem;flex-shrink:0;">
+                <!-- Dark Mode Toggle -->
+                <button id="darkModeToggle" aria-label="Toggle dark mode" title="Toggle dark/light mode">☀️</button>
+
+                <!-- Shortcuts hint -->
+                <button id="shortcutsBtn"
+                        onclick="document.getElementById('shortcuts-modal').classList.toggle('open')"
+                        style="display:flex;align-items:center;justify-content:center;width:38px;height:38px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:var(--radius-sm);cursor:pointer;font-size:0.85rem;color:var(--text-muted);transition:var(--transition);font-weight:700;"
+                        title="Keyboard Shortcuts (?)"
+                        aria-label="Open keyboard shortcuts">?</button>
+
+                <!-- Mobile Hamburger -->
+                <button class="menu-toggle" id="menuToggle"
+                        aria-label="Open navigation menu"
+                        aria-expanded="false"
+                        aria-controls="navbarMenu">☰</button>
+            </div>
         </div>
     </nav>
-    
-    <!-- Flash Messages -->
+
+    <!-- ════════════════════════════════════════════════
+         FLASH MESSAGES (auto-dismissed)
+         ════════════════════════════════════════════════ -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <div class="container" style="margin-top: 1.5rem; max-width: 1200px;">
+            <div class="container" style="margin-top:1.5rem;max-width:1200px;">
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category == 'error' and 'danger' or category }}">
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category }}" role="alert">
                         {{ message }}
                     </div>
                 {% endfor %}
             </div>
         {% endif %}
     {% endwith %}
-    
-    <!-- Main Glass Bento Content -->
+
+    <!-- ════════════════════════════════════════════════
+         MAIN CONTENT
+         ════════════════════════════════════════════════ -->
     <div class="content-wrapper">
         <div class="container">
-            {% block content %}{% endblock %}
+            <main id="main-content" tabindex="-1">
+                {% block content %}{% endblock %}
+            </main>
         </div>
     </div>
-    
-    <!-- Footer -->
-    <footer class="footer">
+
+    <!-- ════════════════════════════════════════════════
+         FOOTER
+         ════════════════════════════════════════════════ -->
+    <footer class="footer" role="contentinfo">
         <div class="container">
-            <p>&copy; 2026 Hostel Management SaaS Platform. All rights reserved. | Built with Security & Depth 🔒</p>
+            <p>&copy; 2026 ROOMMET Hostel Management Platform. All rights reserved. | Built with Security &amp; Depth 🔒</p>
         </div>
     </footer>
-    
-    <!-- JavaScript Menu Toggle -->
+
+    <!-- ════════════════════════════════════════════════
+         BACK TO TOP BUTTON
+         ════════════════════════════════════════════════ -->
+    <button id="backToTop" aria-label="Back to top" title="Scroll to top">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+    </button>
+
+    <!-- ════════════════════════════════════════════════
+         COOKIE CONSENT BANNER
+         ════════════════════════════════════════════════ -->
+    <div id="cookie-banner" role="dialog" aria-label="Cookie consent" aria-live="polite">
+        <div class="cookie-text">
+            <strong>🍪 Cookies &amp; Privacy</strong><br>
+            We use essential session cookies to keep you logged in securely. No tracking or advertising cookies.
+            <a href="#" style="margin-left:0.35rem;">Learn more</a>
+        </div>
+        <div class="cookie-actions">
+            <button id="cookie-accept">Accept</button>
+            <button id="cookie-decline">Decline</button>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════
+         KEYBOARD SHORTCUTS MODAL
+         ════════════════════════════════════════════════ -->
+    <div id="shortcuts-modal" role="dialog" aria-modal="true" aria-label="Keyboard Shortcuts">
+        <div id="shortcuts-panel">
+            <h3>⌨️ Keyboard Shortcuts</h3>
+            <div class="shortcut-list">
+                <div class="shortcut-row">
+                    <span class="shortcut-desc">Open shortcuts</span>
+                    <span class="shortcut-keys"><kbd>?</kbd></span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="shortcut-desc">Close / dismiss</span>
+                    <span class="shortcut-keys"><kbd>Esc</kbd></span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="shortcut-desc">Focus search</span>
+                    <span class="shortcut-keys"><kbd>Ctrl</kbd><kbd>K</kbd></span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="shortcut-desc">Toggle dark mode</span>
+                    <span class="shortcut-keys"><kbd>Alt</kbd><kbd>T</kbd></span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="shortcut-desc">Go to Home</span>
+                    <span class="shortcut-keys"><kbd>G</kbd><kbd>H</kbd></span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="shortcut-desc">Go to Dashboard</span>
+                    <span class="shortcut-keys"><kbd>G</kbd><kbd>D</kbd></span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="shortcut-desc">Scroll to top</span>
+                    <span class="shortcut-keys"><kbd>Home</kbd></span>
+                </div>
+            </div>
+            <div style="margin-top:1.5rem;text-align:right;">
+                <button id="shortcuts-close"
+                        onclick="document.getElementById('shortcuts-modal').classList.remove('open')"
+                        class="btn btn-secondary btn-sm">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════
+         TOAST CONTAINER (injected by JS if needed)
+         ════════════════════════════════════════════════ -->
+    <div id="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+    <!-- ════════════════════════════════════════════════
+         SCRIPTS
+         ════════════════════════════════════════════════ -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+
+    <!-- Alt+T shortcut for dark mode (extra global binding) -->
     <script>
-        const menuToggle = document.getElementById('menuToggle');
-        const navbarMenu = document.getElementById('navbarMenu');
-        if (menuToggle && navbarMenu) {
-            menuToggle.addEventListener('click', () => {
-                navbarMenu.style.display = navbarMenu.style.display === 'flex' ? 'none' : 'flex';
-                navbarMenu.style.flexDirection = 'column';
-                navbarMenu.style.position = 'absolute';
-                navbarMenu.style.top = '100%';
-                navbarMenu.style.left = '0';
-                navbarMenu.style.width = '100%';
-                navbarMenu.style.background = 'rgba(9, 13, 22, 0.95)';
-                navbarMenu.style.padding = '1rem';
-                navbarMenu.style.borderBottom = '1px solid var(--glass-border)';
-            });
-        }
+        document.addEventListener('keydown', function(e) {
+            // Alt+T = toggle theme
+            if (e.altKey && e.key === 't') {
+                e.preventDefault();
+                document.getElementById('darkModeToggle')?.click();
+            }
+            // Home key = scroll top
+            if (e.key === 'Home' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        });
     </script>
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

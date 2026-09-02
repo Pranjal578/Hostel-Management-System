@@ -1,25 +1,44 @@
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from app.models.db import db, User, Hostel, Resident
+from app.models.db import db, User, Hostel, Resident, Payment
 from app.routes.auth import role_required, log_security_action
 from app.utils.qr_generator import generate_hostel_qr, delete_hostel_qr
+from app.utils.validators import (
+    validate_email, validate_phone, validate_password,
+    validate_text_field, validate_capacity, collect_errors
+)
+from app import limiter
 
 admin_bp = Blueprint('admin', __name__)
 
 @admin_bp.route('/dashboard')
 @role_required('SuperAdmin')
 def dashboard():
-    """SuperAdmin central control dashboard - high level summary metrics"""
+    """SuperAdmin central control dashboard - real summary metrics"""
     hostels = Hostel.query.all()
     owners = User.query.filter_by(role='HostelOwner').all()
-    residents_count = Resident.query.count()
+    residents = Resident.query.all()
+    residents_count = len(residents)
+    active_residents_count = sum(1 for r in residents if r.status == 'Active')
     total_capacity = sum(h.total_capacity for h in hostels)
+    occupied_rooms = len(set(r.room_number for r in residents if r.room_number and r.status == 'Active')) or active_residents_count
+    total_rent_collected = float(db.session.query(db.func.sum(Payment.amount)).filter(Payment.status == 'Verified').scalar() or 0.0)
+    pending_rent_amount = float(db.session.query(db.func.sum(Payment.amount)).filter(Payment.status == 'Pending').scalar() or 0.0)
+    pending_payments_count = Payment.query.filter_by(status='Pending').count()
+    verified_payments_count = Payment.query.filter_by(status='Verified').count()
     
     return render_template('admin_dashboard.html', 
                            hostels=hostels, 
                            owners=owners, 
+                           residents=residents,
                            residents_count=residents_count,
-                           total_capacity=total_capacity)
+                           active_residents_count=active_residents_count,
+                           total_capacity=total_capacity,
+                           occupied_rooms=occupied_rooms,
+                           total_rent_collected=total_rent_collected,
+                           pending_rent_amount=pending_rent_amount,
+                           pending_payments_count=pending_payments_count,
+                           verified_payments_count=verified_payments_count)
 
 
 @admin_bp.route('/hostels', methods=['GET'])
@@ -51,16 +70,25 @@ def residents_list():
 
 @admin_bp.route('/owner/create', methods=['POST'])
 @role_required('SuperAdmin')
+@limiter.limit("10 per hour")
 def create_owner():
     """Register a new Hostel Owner user account"""
-    email = request.form.get('email', '').strip()
-    password = request.form.get('password')
-    confirm_password = request.form.get('confirm_password')
+    email    = request.form.get('email', '').strip()
+    password = request.form.get('password', '')
+    confirm_password = request.form.get('confirm_password', '')
     full_name = request.form.get('full_name', '').strip()
-    phone = request.form.get('phone', '').strip()
+    phone    = request.form.get('phone', '').strip()
 
-    if not full_name or not phone:
-        flash('Full name and phone number are required.', 'danger')
+    # Server-side validation
+    field_errors = collect_errors(
+        validate_text_field(full_name, 'Full name', 100),
+        validate_email(email),
+        validate_phone(phone),
+        validate_password(password),
+    )
+    if field_errors:
+        for err in field_errors:
+            flash(err, 'danger')
         return redirect(url_for('admin.owners_list'))
 
     if password != confirm_password:
@@ -94,14 +122,28 @@ def _generate_hostel_code():
 
 @admin_bp.route('/hostel/create', methods=['POST'])
 @role_required('SuperAdmin')
+@limiter.limit("20 per hour")
 def create_hostel():
     """Create a new hostel and assign it to an owner"""
-    name = request.form.get('hostel_name', '').strip()
+    name     = request.form.get('hostel_name', '').strip()
     location = request.form.get('location', '').strip()
-    capacity = int(request.form.get('total_capacity', 100))
+    capacity_str = request.form.get('total_capacity', '100')
     owner_id = request.form.get('owner_id')
     rent = 0.0
     electricity_bill = 0.0
+
+    # Server-side validation
+    field_errors = collect_errors(
+        validate_text_field(name, 'Hostel name', 150),
+        validate_text_field(location, 'Location', 250),
+        validate_capacity(capacity_str),
+    )
+    if field_errors:
+        for err in field_errors:
+            flash(err, 'danger')
+        return redirect(url_for('admin.hostels_list'))
+
+    capacity = int(capacity_str)
 
     # Facilities: collect from multi-select or text field
     facilities_list = request.form.getlist('facilities')

@@ -33,7 +33,7 @@ def get_file_extension(filename):
 
 def validate_photo(file):
     """
-    Validate photo file
+    Validate photo file — extension, size, and magic-byte content check.
 
     Args:
         file: FileStorage object from request.files
@@ -54,6 +54,15 @@ def validate_photo(file):
 
     if file_size > MAX_PHOTO_SIZE:
         return False, f"File too large. Maximum size is 5MB (Current: {file_size / 1024 / 1024:.1f}MB)"
+
+    # Magic-byte check: confirm the actual file content matches an image
+    try:
+        from app.utils.validators import validate_image_magic_bytes
+        ok, err = validate_image_magic_bytes(file)
+        if not ok:
+            return False, err
+    except ImportError:
+        pass  # Fallback: extension-only check if validators not yet available
 
     return True, None
 
