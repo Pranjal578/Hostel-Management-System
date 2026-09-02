@@ -10,6 +10,7 @@ Usage:
     python manage.py generate-secret  # Generate secure SECRET_KEY
     python manage.py backup           # Create a timestamped database backup
     python manage.py backup --keep N  # Backup and keep only last N backups (default 7)
+    python manage.py test-email [to]  # Test live SMTP email delivery to specified recipient
 """
 
 import os
@@ -64,7 +65,10 @@ def check_env():
     print("Checking environment configuration...\n")
 
     required_vars = ['SECRET_KEY', 'ADMIN_USERNAME', 'ADMIN_PASSWORD']
-    optional_vars = ['DATABASE_URL', 'FLASK_ENV', 'FLASK_HOST', 'FLASK_PORT', 'ENCRYPTION_KEY']
+    optional_vars = [
+        'DATABASE_URL', 'FLASK_ENV', 'FLASK_HOST', 'FLASK_PORT', 'ENCRYPTION_KEY',
+        'MAIL_SERVER', 'MAIL_PORT', 'MAIL_USERNAME', 'SENDER_EMAIL'
+    ]
 
     print("Required Variables:")
     for var in required_vars:
@@ -125,6 +129,23 @@ def generate_secret():
     print(f"Generated SECRET_KEY:\n{key}")
     print("\nAdd this to your .env file:")
     print(f"SECRET_KEY={key}")
+
+
+def test_email():
+    """Test real SMTP email delivery using configured settings"""
+    recipient = sys.argv[2] if len(sys.argv) > 2 else (app.config.get('MAIL_USERNAME') or app.config.get('SENDER_EMAIL'))
+    if not recipient:
+        print("[ERROR] Please provide a recipient email: python manage.py test-email user@example.com")
+        return
+    print(f"Testing real SMTP connection to {app.config.get('MAIL_SERVER')}:{app.config.get('MAIL_PORT')}...")
+    print(f"Target recipient: {recipient}")
+    from app.utils.email_sender import send_test_email
+    with app.app_context():
+        success, msg = send_test_email(recipient)
+        if success:
+            print(f"[OK] {msg}")
+        else:
+            print(f"[FAILED] {msg}")
 
 
 def backup(keep: int = 7):
@@ -295,6 +316,7 @@ def main():
         print("  python manage.py check            - Run all checks")
         print("  python manage.py backup           - Backup database (SQLite or PostgreSQL)")
         print("  python manage.py backup --keep N  - Backup & keep only last N backups")
+        print("  python manage.py test-email [to]  - Test live SMTP email delivery")
         return
 
     command = sys.argv[1]
@@ -310,6 +332,8 @@ def main():
             keep=int(sys.argv[sys.argv.index('--keep') + 1])
             if '--keep' in sys.argv else 7
         ),
+        'test-email': test_email,
+        'test-mail': test_email,
     }
 
     if command in commands:
