@@ -1,14 +1,30 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Support both Vite (import.meta.env) and Next.js / Node (process.env)
+// Support Vite (import.meta.env) and Next.js / Node (process.env) with all prefixes
 const envUrl =
-  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL) ||
-  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
+  (typeof import.meta !== 'undefined' && (
+    (import.meta as any).env?.VITE_SUPABASE_URL ||
+    (import.meta as any).env?.NEXT_PUBLIC_SUPABASE_URL ||
+    (import.meta as any).env?.SUPABASE_URL
+  )) ||
+  (typeof process !== 'undefined' && (
+    process.env?.NEXT_PUBLIC_SUPABASE_URL ||
+    process.env?.SUPABASE_URL ||
+    process.env?.VITE_SUPABASE_URL
+  )) ||
   '';
 
 const envKey =
-  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_ANON_KEY) ||
-  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+  (typeof import.meta !== 'undefined' && (
+    (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ||
+    (import.meta as any).env?.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    (import.meta as any).env?.SUPABASE_ANON_KEY
+  )) ||
+  (typeof process !== 'undefined' && (
+    process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env?.SUPABASE_ANON_KEY ||
+    process.env?.VITE_SUPABASE_ANON_KEY
+  )) ||
   '';
 
 // Check if valid credentials are provided
