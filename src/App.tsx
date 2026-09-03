@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   supabase, 
+  isSupabaseConfigured,
   Hostel, 
   Property, 
   Room, 
@@ -165,6 +166,11 @@ export default function App() {
 
   useEffect(() => {
     async function checkSupabase() {
+      if (!isSupabaseConfigured) {
+        setSupabaseConnected(false);
+        setLoading(false);
+        return;
+      }
       try {
         setLoading(true);
         // Attempt a ping to Supabase rooms table
@@ -173,15 +179,10 @@ export default function App() {
           setRooms(data as Room[]);
           setSupabaseConnected(true);
         } else {
-          // If no remote table yet, check if client has valid credentials
-          const hasConfig = Boolean(
-            (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
-            (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL)
-          );
-          setSupabaseConnected(hasConfig);
+          setSupabaseConnected(false);
         }
       } catch (err) {
-        console.log('Supabase fallback to spatial demo state');
+        console.warn('Supabase fetch notice, using fallback state:', err);
         setSupabaseConnected(false);
       } finally {
         setLoading(false);
@@ -266,6 +267,35 @@ export default function App() {
 
       {/* ── Main Dashboard Content ── */}
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem 1.5rem', flex: 1, width: '100%' }}>
+        {!isSupabaseConfigured && (
+          <div style={{
+            background: 'linear-gradient(90deg, rgba(56, 189, 248, 0.12), rgba(168, 85, 247, 0.12))',
+            border: '1px solid rgba(56, 189, 248, 0.3)',
+            borderRadius: '12px',
+            padding: '1rem 1.25rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <AlertCircle size={20} color="#38bdf8" />
+              <span style={{ fontSize: '0.9rem', color: '#e2e8f0' }}>
+                <strong>Vercel Preview Mode:</strong> Running with spatial mock nodes. To stream live database records, add <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> in your Vercel Project Settings.
+              </span>
+            </div>
+            <button 
+              onClick={() => setActiveTab('schema')}
+              className="btn-secondary"
+              style={{ padding: '0.4rem 0.85rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+            >
+              View Schema SQL
+            </button>
+          </div>
+        )}
+
         {/* Metric Cards Banner */}
         <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem', marginBottom: '2rem' }}>
           <div className="glass-card" style={{ padding: '1.5rem' }}>

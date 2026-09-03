@@ -1,17 +1,36 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Support both Next.js (process.env) and Vite (import.meta.env)
-const supabaseUrl =
-  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
+// Support both Vite (import.meta.env) and Next.js / Node (process.env)
+const envUrl =
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_URL) ||
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL) ||
   '';
 
-const supabaseAnonKey =
-  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
+const envKey =
   (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_SUPABASE_ANON_KEY) ||
+  (typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
   '';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Check if valid credentials are provided
+export const isSupabaseConfigured = Boolean(
+  envUrl &&
+  envKey &&
+  !envUrl.includes('placeholder') &&
+  !envUrl.includes('your-project-id')
+);
+
+// Safe fallback URL & key to prevent module crash if Vercel env vars are not yet set
+const safeUrl = isSupabaseConfigured ? envUrl : 'https://demo-roommet.supabase.co';
+const safeKey = isSupabaseConfigured
+  ? envKey
+  : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.dummy_anon_key_for_preview_mode';
+
+export const supabase = createClient(safeUrl, safeKey, {
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false,
+  },
+});
 
 export interface Hostel {
   id: string;
